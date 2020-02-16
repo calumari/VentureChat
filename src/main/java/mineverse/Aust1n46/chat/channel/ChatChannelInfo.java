@@ -44,7 +44,6 @@ public class ChatChannelInfo {
 		Boolean _autojoin = false;
 		Boolean _bungee = false;
 		String _format = "";
-		boolean irc = false;
 		int _cooldown = 0;
 		tellColor = "gray";
 		ConfigurationSection cs = plugin.getConfig().getConfigurationSection("channels");
@@ -78,13 +77,12 @@ public class ChatChannelInfo {
 			_filter = (Boolean) cs.getBoolean(key + ".filter", true);
 			_bungee = (Boolean) cs.getBoolean(key + ".bungeecord", false);
 			_format = cs.getString(key + ".format", "Default");
-			irc = cs.getBoolean(key + ".irc", false);
 			_defaultchannel = (Boolean) cs.getBoolean(key + ".default", false);
 			_alias = (String) cs.getString(key + ".alias", "None");
 			_distance = (Double) cs.getDouble(key + ".distance", (double) 0);
 			_cooldown = (int) cs.getInt(key + ".cooldown", 0);
 			_autojoin = (Boolean) cs.getBoolean(key + ".autojoin", false);
-			ChatChannel c = new ChatChannel(_name, _color, _chatcolor, _permission, _mutable, _filter, _defaultchannel, _alias, _distance, _autojoin, _bungee, _cooldown, _format, irc);
+			ChatChannel c = new ChatChannel(_name, _color, _chatcolor, _permission, _mutable, _filter, _defaultchannel, _alias, _distance, _autojoin, _bungee, _cooldown, _format);
 			cc[x++] = c;
 			if(_defaultchannel) {
 				defaultChannel = c;

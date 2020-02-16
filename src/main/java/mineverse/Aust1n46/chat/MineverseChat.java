@@ -60,14 +60,12 @@ import mineverse.Aust1n46.chat.database.MySQL;
 import mineverse.Aust1n46.chat.database.PlayerData;
 import mineverse.Aust1n46.chat.gui.GuiSlotInfo;
 import mineverse.Aust1n46.chat.json.JsonFormatInfo;
-import mineverse.Aust1n46.chat.listeners.CapeListener;
 import mineverse.Aust1n46.chat.listeners.ChatListener;
 import mineverse.Aust1n46.chat.listeners.CommandListener;
 import mineverse.Aust1n46.chat.listeners.LoginListener;
 import mineverse.Aust1n46.chat.listeners.PacketListener;
 import mineverse.Aust1n46.chat.listeners.SignListener;
 import mineverse.Aust1n46.chat.utilities.Format;
-import mineverse.Aust1n46.chat.versions.V1_8;
 import mineverse.Aust1n46.chat.versions.VersionHandler;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.permission.Permission;
@@ -121,11 +119,9 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 	private SignListener signListener;
 	private CommandListener commandListener;
 	private PacketListener packetListener;
-	private CapeListener capeListener;
 	private Channel channelListener;
 	public static String[] playerlist;
 	public static String playerlist_server;
-	public boolean ircListen;
 	public ProtocolManager protocolManager;
 	public static ChatMessage lastChatMessage;
 	public static String lastJson;
@@ -383,10 +379,6 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 		pluginManager.registerEvents(chatListener, this);
 		pluginManager.registerEvents(signListener, this);
 		pluginManager.registerEvents(commandListener, this);
-		if(!VersionHandler.is1_7_10() && !VersionHandler.is1_7_9() && !VersionHandler.is1_7_2()) {
-			capeListener = new CapeListener();
-			pluginManager.registerEvents(capeListener, this);
-		}
 		loginListener = new LoginListener(this, ccInfo);
 		pluginManager.registerEvents(loginListener, this);
 		this.registerPacketListeners();
@@ -429,19 +421,6 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 		Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Establishing BungeeCord"));
 		Bukkit.getMessenger().registerOutgoingPluginChannel(this, MineverseChat.PLUGIN_MESSAGING_CHANNEL);
 		Bukkit.getMessenger().registerIncomingPluginChannel(this, MineverseChat.PLUGIN_MESSAGING_CHANNEL, this);
-		if(pluginManager.isPluginEnabled("Towny")) {
-			Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Enabling Towny Formatting"));
-		}
-		if(pluginManager.isPluginEnabled("Jobs")) {
-			Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Enabling Jobs Formatting"));
-		}
-		if(pluginManager.isPluginEnabled("Factions")) {
-			String version = pluginManager.getPlugin("Factions").getDescription().getVersion();
-			Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Enabling Factions Formatting version " + version));
-		}
-		if(pluginManager.isPluginEnabled("Heroes")) {
-			Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Enabling Heroes Formatting"));
-		}
 		if(pluginManager.isPluginEnabled("PlaceholderAPI")) {
 			Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Enabling PlaceholderAPI Hook"));
 		}

@@ -16,13 +16,11 @@ public class ChatChannel {
 	private Boolean bungee;
 	private String format;
 	private int cooldown;
-	private boolean irc;
 
-	public ChatChannel(String _Name, String _color, String _chatcolor, String _Permission, Boolean _mutable, Boolean _filter, Boolean _defaultchannel, String _alias, Double _distance, Boolean _autojoin, Boolean _bungee, int _cooldown, String _format, boolean irc) {
+	public ChatChannel(String _Name, String _color, String _chatcolor, String _Permission, Boolean _mutable, Boolean _filter, Boolean _defaultchannel, String _alias, Double _distance, Boolean _autojoin, Boolean _bungee, int _cooldown, String _format) {
 		name = _Name;
 		permission = "venturechat." + _Permission;
 		mutable = _mutable;
-		this.irc = irc;
 		setColor(_color);
 		setChatColor(_chatcolor);
 		setDefaultChannel(_defaultchannel);
@@ -137,10 +135,6 @@ public class ChatChannel {
 
 	public void setFilter(Boolean filter) {
 		this.filter = filter;
-	}
-
-	public boolean isIRC() {
-		return irc;
 	}
 	
 	@Override

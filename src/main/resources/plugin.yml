@@ -3,7 +3,6 @@ version: 2.17.3
 api-version: 1.13
 main: mineverse.Aust1n46.chat.MineverseChat
 depend: [Vault, ProtocolLib, PlaceholderAPI]
-softdepend: [Towny, Factions, Heroes]
 Author: Aust1n46
 description: Chat with channels with many features!
 commands:

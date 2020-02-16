@@ -13,5 +13,5 @@ public class FormatTags {
     public static String ChatFormat(String format, Player p, MineverseChat plugin, ChatChannelInfo cc, ChatChannel channel, boolean json) {
         return PlaceholderAPI.setBracketPlaceholders(p, Format.FormatStringAll(format));
     }
-	
+
 }

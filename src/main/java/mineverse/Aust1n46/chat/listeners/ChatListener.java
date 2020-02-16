@@ -417,7 +417,6 @@ public class ChatListener implements Listener {
 		int chCooldown = 0;
 		String curColor = "";
 		String Channelformat;
-		boolean irc = false;
 		if(eventChannel.hasPermission() && !mcp.getPlayer().hasPermission(eventChannel.getPermission())) {
 			mcp.getPlayer().sendMessage(ChatColor.RED + "You do not have permission for this channel.");
 			mcp.setQuickChat(false);
@@ -507,9 +506,6 @@ public class ChatListener implements Listener {
 
 		if(eventChannel.hasDistance()) {
 			chDistance = eventChannel.getDistance();
-		}
-		if(eventChannel.isIRC()) {
-			irc = true;
 		}
 		if(plugin.getConfig().getConfigurationSection("channels." + eventChannel.getName()).getString("format").equalsIgnoreCase("Default")) {
 			if(curColor.equalsIgnoreCase("None")) {
