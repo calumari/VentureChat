@@ -325,19 +325,6 @@ enable_factions_channel: false
 # Permissions automatically include "venturechat." 
 # Example: permissions: staff equals venturechat.staff
 # Use None for no permissions
-
-# Use PlaceholderAPI placeholders please!!!
-# Use PlaceholderAPI placeholders please!!!
-# Use PlaceholderAPI placeholders please!!!
-# Legacy Placeholders:  
-# {name} : player name
-# {nickname} : player nickname or name if they have no nickname
-# {prefix} : player prefix and color
-# {suffix} : player suffix and color
-# Use '' or "" around format, example: '[&2global&f] {prefix}{name}&2:'
-# You must have prefixes and suffixes set in a Vault compatible permissions plugin to avoid errors
-# Use "" as the prefix or suffix to have none
-# use Default for the basic formatting
 channels:
   Global:
     color: dark_green
