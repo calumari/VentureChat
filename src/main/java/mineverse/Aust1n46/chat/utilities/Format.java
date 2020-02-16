@@ -67,7 +67,7 @@ public class Format {
 		int indexStart = -1;
 		int indexEnd = -1;
 		String placeholder = "";
-		String lastCode = "งf";
+		String lastCode = "ยงf";
 		do {
 			Pattern pattern = Pattern.compile("(" + prefix.replace("[", "\\[").replace("]", "\\]").replace("{", "\\{").replace("}", "\\}").replace("(", "\\(").replace(")", "\\)") + "|" + nickname.replace("[", "\\[").replace("]", "\\]").replace("{", "\\{").replace("}", "\\}").replace("(", "\\(").replace(")", "\\)") + "|" + suffix.replace("[", "\\[").replace("]", "\\]").replace("{", "\\{").replace("}", "\\}").replace("(", "\\(").replace(")", "\\)") + ")");
 			Matcher matcher = pattern.matcher(remaining);
@@ -121,9 +121,9 @@ public class Format {
 		int indexLink = -1;
 		int indexLinkEnd = -1;
 		String link = "";
-		String lastCode = "งf";
+		String lastCode = "ยงf";
 		do {
-			Pattern pattern = Pattern.compile("([a-zA-Z0-9ง\\-:/]+\\.[a-zA-Z/0-9ง\\-:_#]+(\\.[a-zA-Z/0-9.ง\\-:#\\?\\+=_]+)?)");
+			Pattern pattern = Pattern.compile("([a-zA-Z0-9ยง\\-:/]+\\.[a-zA-Z/0-9ยง\\-:_#]+(\\.[a-zA-Z/0-9.ยง\\-:#\\?\\+=_]+)?)");
 			Matcher matcher = pattern.matcher(remaining);
 			if(matcher.find()) {
 				indexLink = matcher.start();
@@ -151,7 +151,7 @@ public class Format {
 		String ts = "";
 		char[] ch = s.toCharArray();
 		for(int a = 0; a < s.length() - 1; a ++) {
-			if(String.valueOf(ch[a + 1]).matches("[lkonmr0123456789abcdef]") && ch[a] == 'ง') {
+			if(String.valueOf(ch[a + 1]).matches("[lkonmr0123456789abcdef]") && ch[a] == 'ยง') {
 				ts += String.valueOf(ch[a]) + ch[a + 1];
 				if(String.valueOf(ch[a + 1]).matches("[0123456789abcdefr]")) {
 					ts = String.valueOf(ch[a]) + ch[a + 1];
@@ -184,7 +184,7 @@ public class Format {
 				break;
 			}
 			modifier = "";
-			indexColor = remaining.indexOf("ง");	
+			indexColor = remaining.indexOf("ยง");
 			previousColor = color;			
 			color = remaining.substring(1, indexColor + 2);
 			if(!color.matches("[0123456789abcdef]")) {				
@@ -242,7 +242,7 @@ public class Format {
 			if(strikethrough)
 				modifier += ",\"strikethrough\":\"true\"";	
 			remaining = remaining.substring(2);
-			indexNextColor = remaining.indexOf("ง");
+			indexNextColor = remaining.indexOf("ยง");
 			if(indexNextColor == -1) {
 				indexNextColor = remaining.length();
 			}

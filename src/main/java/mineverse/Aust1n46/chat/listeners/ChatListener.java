@@ -248,9 +248,9 @@ public class ChatListener implements Listener {
 
 		if(event.getMessage().startsWith("@")) {
 			for(MineverseChatPlayer p : MineverseChat.onlinePlayers) {
-				if(p.isOnline() && event.getMessage().startsWith("@" + p.getPlayer().getDisplayName().replace("งr", ""))) {
+				if(p.isOnline() && event.getMessage().startsWith("@" + p.getPlayer().getDisplayName().replace("ยงr", ""))) {
 					int add = 0;
-					if(p.getPlayer().getDisplayName().contains("งr")) add = 2;
+					if(p.getPlayer().getDisplayName().contains("ยงr")) add = 2;
 					String format = event.getMessage().substring(p.getPlayer().getDisplayName().length() + 1 - add);
 					if(event.getMessage().length() <= p.getPlayer().getDisplayName().length() + 1 - add) {
 						mcp.getPlayer().sendMessage(ChatColor.RED + "You must include a message.");
@@ -679,7 +679,7 @@ public class ChatListener implements Listener {
 			mcp.setQuickChat(false);
 			String message = String.format(Channelformat + "%s", new Object[] { event.getMessage() });
 			event.setFormat(message.replace("%", "%%"));
-			message = message.replaceAll("(ง([a-z0-9]))", "");
+			message = message.replaceAll("(ยง([a-z0-9]))", "");
 			String format = Channelformat;
 			String chat = event.getMessage();
 			if(curColor.equalsIgnoreCase("None")) {
@@ -715,7 +715,7 @@ public class ChatListener implements Listener {
 				}
 			}
 			if(bungee && !event.isCancelled()) {
-				message = String.format(Channelformat + event.getMessage(), new Object[] { event.getPlayer().getDisplayName(), event.getMessage() }).replaceAll("(ง([a-z0-9]))", "");
+				message = String.format(Channelformat + event.getMessage(), new Object[] { event.getPlayer().getDisplayName(), event.getMessage() }).replaceAll("(ยง([a-z0-9]))", "");
 				format = String.format(Channelformat, new Object[] { event.getPlayer().getDisplayName() });
 				chat = event.getMessage();
 				//MineverseChat.lastChatMessage = new ChatMessage(mcp.getPlayer().getName(), message, message.hashCode(), format, chat, eventChannel.getName());

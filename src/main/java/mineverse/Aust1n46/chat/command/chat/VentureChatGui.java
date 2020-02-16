@@ -101,15 +101,15 @@ public class VentureChatGui extends MineverseCommand {
 		}
 		
 		ItemMeta closeMeta = close.getItemMeta();
-		closeMeta.setDisplayName("§oClose GUI");
+		closeMeta.setDisplayName("Â§oClose GUI");
 		close.setItemMeta(closeMeta);
 		
 		SkullMeta skullMeta = (SkullMeta) skull.getItemMeta(); 
 		skullMeta.setOwner(target.getName()); 
-		skullMeta.setDisplayName("§b" + target.getName());
+		skullMeta.setDisplayName("Â§b" + target.getName());
 		List<String> skullLore = new ArrayList<String>();
-		skullLore.add("§7Channel: " + ChatColor.valueOf(channel.getColor().toUpperCase()) + channel.getName());
-		skullLore.add("§7Hash: " + ChatColor.valueOf(channel.getColor().toUpperCase()) + hash);
+		skullLore.add("Â§7Channel: " + ChatColor.valueOf(channel.getColor().toUpperCase()) + channel.getName());
+		skullLore.add("Â§7Hash: " + ChatColor.valueOf(channel.getColor().toUpperCase()) + hash);
 		skullMeta.setLore(skullLore);
 		skull.setItemMeta(skullMeta); 
 		skull.setDurability((short) 3);
