@@ -9,11 +9,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 
-import com.herocraftonline.heroes.Heroes;
-import com.herocraftonline.heroes.characters.CharacterManager;
-import com.herocraftonline.heroes.characters.Hero;
-import com.palmergames.bukkit.towny.object.Resident;
-import com.palmergames.bukkit.towny.object.TownyUniverse;
+
 
 //This class formats the chat by replacing format place holders with their data.
 public class FormatTags {
@@ -64,61 +60,6 @@ public class FormatTags {
 		catch(Exception e) {
 			if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
 				System.out.println("[" + plugin.getConfig().getString("pluginname", "MineverseChat") + "] Prefix and / or suffix don't exist, setting to nothing");
-			}
-		}
-		if(pluginManager.isPluginEnabled("Towny")) {
-			try {
-				Resident r = TownyUniverse.getDataSource().getResident(p.getName());
-				if(r.hasTown()) {
-					town = r.getTown().getName();
-					ptown = ChatColor.WHITE + "[" + ChatColor.DARK_AQUA + r.getTown().getName() + ChatColor.WHITE + "]";
-				}
-				if(r.hasNation()) {
-					nation = r.getTown().getNation().getName();
-					pnation = ChatColor.WHITE + "[" + ChatColor.GOLD + r.getTown().getNation().getName() + ChatColor.WHITE + "]";
-				}
-				if(r.isMayor() || r.isKing()) {
-					ttitle = r.getFormattedName().replace(" " + p.getName(), "");
-				}
-				else {
-					ttitle = r.getTitle();
-				}
-				if(r.hasSurname()) {
-					surname = r.getSurname();
-				}
-			}
-			catch(Exception ex) {
-				ex.printStackTrace();
-			}
-		}
-		if(pluginManager.isPluginEnabled("Heroes")) {
-			try {
-				Heroes heroes = (Heroes) pluginManager.getPlugin("Heroes");
-				CharacterManager manager = heroes.getCharacterManager();
-				Hero h = manager.getHero(p);
-				mana = h.getMana() + "";
-				if(h.getHeroClass() != null) {
-					heroxp = h.getExperience(h.getHeroClass()) + "";
-					herolevel = h.getLevel(h.getHeroClass()) + "";
-					heroclass = h.getHeroClass().getName();
-					if(h.isMaster(h.getHeroClass())) {
-						heromaster = "Master";
-					}
-				}
-				if(h.getSecondClass() != null) {
-					herosecondclass = h.getSecondClass().getName();
-					herosecondlevel = h.getLevel(h.getSecondClass()) + "";
-					herosecondxp = h.getExperience(h.getSecondClass()) + "";
-					if(h.isMaster(h.getSecondClass())) {
-						herosecondmaster = "Master";
-					}
-				}
-				if(h.hasParty()) {
-					party = h.getParty().toString();
-				}
-			}
-			catch(Exception ex) {
-				ex.printStackTrace();
 			}
 		}
 		/*if(pluginManager.isPluginEnabled("Factions")) {
@@ -194,61 +135,6 @@ public class FormatTags {
 		catch(Exception e) {
 			if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
 				System.out.println("[" + plugin.getConfig().getString("pluginname", "MineverseChat") + "] Prefix and / or suffix don't exist, setting to nothing");
-			}
-		}
-		if(pluginManager.isPluginEnabled("Towny")) {
-			try {
-				Resident r = TownyUniverse.getDataSource().getResident(p.getName());
-				if(r.hasTown()) {
-					town = r.getTown().getName();
-					ptown = ChatColor.WHITE + "[" + ChatColor.DARK_AQUA + r.getTown().getName() + ChatColor.WHITE + "]";
-				}
-				if(r.hasNation()) {
-					nation = r.getTown().getNation().getName();
-					pnation = ChatColor.WHITE + "[" + ChatColor.GOLD + r.getTown().getNation().getName() + ChatColor.WHITE + "]";
-				}
-				if(r.isMayor() || r.isKing()) {
-					ttitle = r.getFormattedName().replace(" " + p.getName(), "");
-				}
-				else {
-					ttitle = r.getTitle();
-				}
-				if(r.hasSurname()) {
-					surname = r.getSurname();
-				}
-			}
-			catch(Exception ex) {
-				ex.printStackTrace();
-			}
-		}
-		if(pluginManager.isPluginEnabled("Heroes")) {
-			try {
-				Heroes heroes = (Heroes) pluginManager.getPlugin("Heroes");
-				CharacterManager manager = heroes.getCharacterManager();
-				Hero h = manager.getHero(p);
-				mana = h.getMana() + "";
-				if(h.getHeroClass() != null) {
-					heroxp = h.getExperience(h.getHeroClass()) + "";
-					herolevel = h.getLevel(h.getHeroClass()) + "";
-					heroclass = h.getHeroClass().getName();
-					if(h.isMaster(h.getHeroClass())) {
-						heromaster = "Master";
-					}
-				}
-				if(h.getSecondClass() != null) {
-					herosecondclass = h.getSecondClass().getName();
-					herosecondlevel = h.getLevel(h.getSecondClass()) + "";
-					herosecondxp = h.getExperience(h.getSecondClass()) + "";
-					if(h.isMaster(h.getSecondClass())) {
-						herosecondmaster = "Master";
-					}
-				}
-				if(h.hasParty()) {
-					party = h.getParty().toString();
-				}
-			}
-			catch(Exception ex) {
-				ex.printStackTrace();
 			}
 		}
 		/*if(pluginManager.isPluginEnabled("Factions")) {

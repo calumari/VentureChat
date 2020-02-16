@@ -4,49 +4,15 @@
  */
 package mineverse.Aust1n46.chat;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import net.milkbowl.vault.chat.Chat;
-import net.milkbowl.vault.permission.Permission;
-import mineverse.Aust1n46.chat.irc.Bot;
-import mineverse.Aust1n46.chat.irc.command.IRCCommandInfo;
-import mineverse.Aust1n46.chat.json.JsonFormatInfo;
-import mineverse.Aust1n46.chat.listeners.CapeListener;
-import mineverse.Aust1n46.chat.listeners.CommandListener;
-import mineverse.Aust1n46.chat.listeners.LoginListener;
-import mineverse.Aust1n46.chat.listeners.ChatListener;
-import mineverse.Aust1n46.chat.listeners.PacketListener;
-import mineverse.Aust1n46.chat.listeners.SignListener;
-//import mineverse.Aust1n46.chat.localization.Localization;
-//import mineverse.Aust1n46.chat.alias.Alias;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.utility.MinecraftReflection;
+import me.clip.placeholderapi.PlaceholderAPI;
 import mineverse.Aust1n46.chat.alias.AliasInfo;
 import mineverse.Aust1n46.chat.api.MineverseChatAPI;
 import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
 import mineverse.Aust1n46.chat.channel.ChatChannel;
 import mineverse.Aust1n46.chat.channel.ChatChannelInfo;
-//import mineverse.Aust1n46.chat.command.CCommand;
 import mineverse.Aust1n46.chat.command.MineverseCommand;
 import mineverse.Aust1n46.chat.command.MineverseCommandExecutor;
 import mineverse.Aust1n46.chat.command.chat.Broadcast;
@@ -93,12 +59,21 @@ import mineverse.Aust1n46.chat.command.mute.Unmuteall;
 import mineverse.Aust1n46.chat.database.MySQL;
 import mineverse.Aust1n46.chat.database.PlayerData;
 import mineverse.Aust1n46.chat.gui.GuiSlotInfo;
+import mineverse.Aust1n46.chat.json.JsonFormatInfo;
+import mineverse.Aust1n46.chat.listeners.CapeListener;
+import mineverse.Aust1n46.chat.listeners.ChatListener;
+import mineverse.Aust1n46.chat.listeners.CommandListener;
+import mineverse.Aust1n46.chat.listeners.LoginListener;
+import mineverse.Aust1n46.chat.listeners.PacketListener;
+import mineverse.Aust1n46.chat.listeners.SignListener;
 import mineverse.Aust1n46.chat.utilities.Format;
 import mineverse.Aust1n46.chat.versions.V1_8;
 import mineverse.Aust1n46.chat.versions.VersionHandler;
-
+import net.milkbowl.vault.chat.Chat;
+import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.SimpleCommandMap;
@@ -110,13 +85,34 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.Sound;
 
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
-import com.comphenix.protocol.utility.MinecraftReflection;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import me.clip.placeholderapi.PlaceholderAPI;
+//import mineverse.Aust1n46.chat.localization.Localization;
+//import mineverse.Aust1n46.chat.alias.Alias;
+//import mineverse.Aust1n46.chat.command.CCommand;
 
 public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 	// Listeners --------------------------------
@@ -155,7 +151,6 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 	public static ChatChannelInfo ccInfo;
 	public static AliasInfo aaInfo;
 	public static JsonFormatInfo jfInfo;
-	public static IRCCommandInfo ircInfo;
 	public static GuiSlotInfo gsInfo;
 	public boolean quickchat = true;
 	private static final Logger log = Logger.getLogger("Minecraft");
@@ -179,10 +174,6 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 	// Offline data ----------------------------
 	public Map<String, String> mutes = new HashMap<String, String>();
 	public Map<String, List<String>> mail = new HashMap<String, List<String>>();
-
-	// IRC Bot -----------
-	public Bot bot;
-	public boolean irc = false;
 
 	private LogLevels curLogLevel;
 
@@ -291,7 +282,6 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 
 		Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Registering Listeners"));
 		// Channel information reference
-		ircInfo = new IRCCommandInfo(this);
 		aaInfo = new AliasInfo(this);
 		jfInfo = new JsonFormatInfo(this);
 		gsInfo = new GuiSlotInfo();
@@ -333,12 +323,6 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 
 		// this.loadCommandMap();
 		// this.unregister("msg");
-
-		if(this.getConfig().getConfigurationSection("irc").getBoolean("enabled", false)) {
-			bot = new Bot(this, ccInfo, ircInfo);
-			bot.init();
-			irc = true;
-		}
 
 		commands.put("afk", new Afk("afk"));
 		commands.put("broadcast", new Broadcast("broadcast"));
@@ -391,8 +375,8 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 
 		channelListener = new Channel();
 		signListener = new SignListener(this, ccInfo);
-		chatListener = new ChatListener(this, ccInfo, bot);
-		commandListener = new CommandListener(this, ccInfo, aaInfo, bot);
+		chatListener = new ChatListener(this, ccInfo);
+		commandListener = new CommandListener(this, ccInfo, aaInfo);
 
 		PluginManager pluginManager = getServer().getPluginManager();
 		pluginManager.registerEvents(channelListener, this);
@@ -411,7 +395,7 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 		try {
 			// if(VersionHandler.is1_7_9()) cmap = V1_7_9.v1_7_9();
 			// if(VersionHandler.is1_7_10()) cmap = V1_7_10.v1_7_10();
-			if(VersionHandler.is1_8()) cmap = V1_8.v1_8();
+//			if(VersionHandler.is1_8()) cmap = V1_8.v1_8();
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -673,9 +657,6 @@ public class MineverseChat extends JavaPlugin implements PluginMessageListener {
 		PlayerData.savePlayerData();
 		Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Disabling..."));
 		Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Disabled Successfully"));
-		if(irc) {
-			bot.terminate();
-		}
 		if(MineverseChat.cape != null) {
 			MineverseChat.cape.remove();
 		}

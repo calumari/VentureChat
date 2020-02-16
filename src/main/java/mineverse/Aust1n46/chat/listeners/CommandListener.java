@@ -1,11 +1,6 @@
 package mineverse.Aust1n46.chat.listeners;
 
-import java.io.FileNotFoundException;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-
+import me.clip.placeholderapi.PlaceholderAPI;
 import mineverse.Aust1n46.chat.MineverseChat;
 import mineverse.Aust1n46.chat.alias.Alias;
 import mineverse.Aust1n46.chat.alias.AliasInfo;
@@ -14,10 +9,8 @@ import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
 import mineverse.Aust1n46.chat.channel.ChatChannel;
 import mineverse.Aust1n46.chat.channel.ChatChannelInfo;
 import mineverse.Aust1n46.chat.gui.GuiSlot;
-import mineverse.Aust1n46.chat.irc.Bot;
 import mineverse.Aust1n46.chat.utilities.Format;
 import mineverse.Aust1n46.chat.versions.VersionHandler;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -34,7 +27,11 @@ import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 
-import me.clip.placeholderapi.PlaceholderAPI;
+import java.io.FileNotFoundException;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 //This class listens for commands (Any chat that begins with a /) to use in the command spy and
 //in the custom commands such as aliases.
@@ -42,13 +39,11 @@ public class CommandListener implements CommandExecutor, Listener {
 	private MineverseChat plugin;
 	private ChatChannelInfo cc;
 	private AliasInfo aa;
-	private Bot bot;
 
-	public CommandListener(MineverseChat plugin, ChatChannelInfo cc, AliasInfo aa, Bot bot) {
+	public CommandListener(MineverseChat plugin, ChatChannelInfo cc, AliasInfo aa) {
 		this.plugin = plugin;
 		this.cc = cc;
 		this.aa = aa;
-		this.bot = bot;
 	}
 
 	@EventHandler
@@ -214,9 +209,6 @@ public class CommandListener implements CommandExecutor, Listener {
 	//old 1.8 command map
 	@EventHandler
 	public void onServerCommand(ServerCommandEvent event) {
-		if(plugin.irc && bot.bot.isConnected() && !event.getCommand().equalsIgnoreCase("say ") && event.getCommand().toLowerCase().startsWith("say ")) {
-			bot.bot.getUserChannelDao().getChannel(bot.channel).send().message("[Server] " + event.getCommand().substring(4));
-		}
 		if(plugin.mysql) {
 			Statement statement;
 			Calendar currentDate = Calendar.getInstance();
