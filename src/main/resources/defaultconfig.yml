@@ -47,6 +47,7 @@ nicknames:
 nickname-in-tablist: true
 
 commandspy:
+  format: '&6{player}: {command}'
   worldeditcommands: true
   
 antispam:
@@ -111,18 +112,11 @@ replyformatto: Default
 replyformatfrom: Default
 replyformatspy: Default
 
-# {sender} : player sendings name
-# {player} : player receivings name
-# {time} : time mail was sent
-# use Default for the basic formatting
-mailformat: Default
-
 # {host} : party hosts name
 # {player} : player name
 # use Default for the basic formatting
 partyformat: Default
 
-broadcastafk: false
 formatcleaner: true
 
 # If true, /ignore will block chat from the ignored player as well as PM's
@@ -271,6 +265,17 @@ alias:
     permissions: None
     components:
     - 'Command: /vmessage$'
+  
+# Enables the creation of special Towny channels: Town and Nation
+# To create these channels, simply name two channels below "Town" and "Nation"
+# Bungeecord must be set to false for these channels! 
+enable_towny_channel: false
+
+# Enables the creation of a special faction only channel using the Factions plugin
+# To create this channel, simply name a channel below "Faction"
+# Bungeecord must be set to false for this channel!
+# WARNING: May not work for all versions of Factions!
+enable_factions_channel: false
 
 # color = [channel] color
 # chatcolor = text color
@@ -281,6 +286,15 @@ alias:
 # Permissions automatically include "venturechat." 
 # Example: permissions: staff equals venturechat.staff
 # Use None for no permissions
+
+# Use PlaceholderAPI placeholders are required!!!
+# Use PlaceholderAPI placeholders are required!!!
+# Use PlaceholderAPI placeholders are required!!!
+# /papi ecloud download [plugin]
+# /papi reload
+# Use '' or "" around format, example: '[&2global&f] {vault_prefix} {player_displayname}&2:'
+# You must have prefixes and suffixes set in a Vault compatible permissions plugin to avoid errors
+# Use "" as the prefix or suffix to have none
 channels:
   Global:
     color: dark_green
@@ -294,7 +308,7 @@ channels:
     bungeecord: false
     alias: g
     permissions: None
-    format: '&f[&2Global&f] {prefix} {nickname}&2:'
+    format: '&f[&2Global&f] {vault_prefix} {player_displayname}&2:'
   Staff:
     color: green
     chatcolor: green
@@ -307,7 +321,7 @@ channels:
     bungeecord: false
     alias: st
     permissions: staffchannel
-    format: '&f[&aStaff&f] {prefix} {nickname}&a:'
+    format: '&f[&aStaff&f] {vault_prefix} {player_displayname}&a:'
   Admin:
     color: red
     chatcolor: red
@@ -320,7 +334,7 @@ channels:
     bungeecord: false
     alias: a
     permissions: adminchannel
-    format: '&f[&cAdmin&f] {prefix} {nickname}&c:'
+    format: '&f[&cAdmin&f] {vault_prefix} {player_displayname}&c:'
   Donator:
     color: light_purple
     chatcolor: light_purple
@@ -333,7 +347,7 @@ channels:
     bungeecord: false
     alias: d
     permissions: donatorchannel
-    format: '&f[&dDonator&f] {prefix} {nickname}&d:'
+    format: '&f[&dDonator&f] {vault_prefix} {player_displayname}&d:'
   Help:
     color: aqua
     chatcolor: aqua
@@ -346,7 +360,7 @@ channels:
     bungeecord: false
     alias: h
     permissions: None
-    format: '&f[&bHelp&f] {prefix} {nickname}&b:'
+    format: '&f[&bHelp&f] {vault_prefix} {player_displayname}&b:'
   Trade:
     color: dark_aqua
     chatcolor: dark_aqua
@@ -359,7 +373,7 @@ channels:
     bungeecord: false
     alias: t
     permissions: None
-    format: '&f[&3Trade&f] {prefix} {nickname}&3:'
+    format: '&f[&3Trade&f] {vault_prefix} {player_displayname}&3:'
   Local:
     color: yellow
     chatcolor: yellow
@@ -372,7 +386,7 @@ channels:
     bungeecord: false
     alias: l
     permissions: None
-    format: '&f[&eLocal&f] {prefix} {nickname}&e:'
+    format: '&f[&eLocal&f] {vault_prefix} {player_displayname}&e:'
   Network:
     color: gold
     chatcolor: gold
@@ -385,4 +399,4 @@ channels:
     bungeecord: true
     alias: n
     permissions: None
-    format: '&f[&6Network&f] {prefix} {nickname}&6:'
+    format: '&f[&6Network&f] {vault_prefix} {player_displayname}&6:'

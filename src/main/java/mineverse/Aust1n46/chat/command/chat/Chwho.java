@@ -4,8 +4,8 @@ import mineverse.Aust1n46.chat.MineverseChat;
 import mineverse.Aust1n46.chat.api.MineverseChatAPI;
 import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
 import mineverse.Aust1n46.chat.channel.ChatChannel;
-import mineverse.Aust1n46.chat.channel.ChatChannelInfo;
 import mineverse.Aust1n46.chat.command.MineverseCommand;
+import mineverse.Aust1n46.chat.localization.LocalizedMessage;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -16,12 +16,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 
 public class Chwho extends MineverseCommand {
-	private MineverseChat plugin;
-	private ChatChannelInfo cc = MineverseChat.ccInfo;
-
+	private MineverseChat plugin = MineverseChat.getInstance();
+	
 	public Chwho(String name) {
 		super(name);
-		this.plugin = MineverseChat.getInstance();
 	}
 
 	@Override
@@ -29,13 +27,13 @@ public class Chwho extends MineverseCommand {
 		String playerlist = "";
 		if(sender.hasPermission("venturechat.chwho")) {
 			if(args.length > 0) {
-				ChatChannel channel = cc.getChannelInfo(args[0]);
+				ChatChannel channel = ChatChannel.getChannel(args[0]);
 				if(channel != null) {
 					if(channel.hasPermission()) {
 						if(!sender.hasPermission(channel.getPermission())) {
 							MineverseChatPlayer mcp = MineverseChatAPI.getMineverseChatPlayer(((Player) sender));
 							mcp.removeListening(channel.getName());
-							mcp.getPlayer().sendMessage(ChatColor.RED + "You do not have permission to look at this channel.");
+							mcp.getPlayer().sendMessage(LocalizedMessage.CHANNEL_NO_PERMISSION_VIEW.toString());
 							return;
 						}
 					}
@@ -89,22 +87,27 @@ public class Chwho extends MineverseCommand {
 					if(playerlist.length() > 2) {
 						playerlist = playerlist.substring(0, playerlist.length() - 2);
 					}
-					sender.sendMessage(ChatColor.GOLD + "Players in Channel: " + ChatColor.valueOf(channel.getColor().toUpperCase()) + channel.getName());
+					sender.sendMessage(LocalizedMessage.CHANNEL_PLAYER_LIST_HEADER.toString()
+							.replace("{channel_color}", (ChatColor.valueOf(channel.getColor().toUpperCase())).toString())
+							.replace("{channel_name}", channel.getName()));
 					sender.sendMessage(playerlist);
 					return;
 				}
 				else {
-					sender.sendMessage(ChatColor.RED + "Invalid channel: " + args[0]);
+					sender.sendMessage(LocalizedMessage.INVALID_CHANNEL.toString()
+							.replace("{args}", args[0]));
 					return;
 				}
 			}
 			else {
-				sender.sendMessage(ChatColor.RED + "Invalid command: /chwho [channel]");
+				sender.sendMessage(LocalizedMessage.COMMAND_INVALID_ARGUMENTS.toString()
+						.replace("{command}", "/chwho")
+						.replace("{args}", "[channel]"));
 				return;
 			}
 		}
 		else {
-			sender.sendMessage(ChatColor.RED + "You do not have permission for this command.");
+			sender.sendMessage(LocalizedMessage.COMMAND_NO_PERMISSION.toString());
 			return;
 		}
 	}

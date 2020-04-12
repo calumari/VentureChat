@@ -1,16 +1,11 @@
 package mineverse.Aust1n46.chat.listeners;
 
-import mineverse.Aust1n46.chat.ChatMessage;
-import mineverse.Aust1n46.chat.MineverseChat;
-import mineverse.Aust1n46.chat.api.MineverseChatAPI;
-import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
-import mineverse.Aust1n46.chat.api.events.ChannelJoinEvent;
-import mineverse.Aust1n46.chat.channel.ChatChannel;
-import mineverse.Aust1n46.chat.channel.ChatChannelInfo;
-import mineverse.Aust1n46.chat.database.DatabaseSender;
-import mineverse.Aust1n46.chat.utilities.Format;
-import mineverse.Aust1n46.chat.utilities.FormatTags;
-import mineverse.Aust1n46.chat.versions.VersionHandler;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Set;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -20,80 +15,62 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.PluginManager;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.IllegalFormatException;
+import com.comphenix.protocol.events.PacketContainer;
+
+import me.clip.placeholderapi.PlaceholderAPI;
+import mineverse.Aust1n46.chat.MineverseChat;
+import mineverse.Aust1n46.chat.api.MineverseChatAPI;
+import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
+import mineverse.Aust1n46.chat.api.events.ChannelJoinEvent;
+import mineverse.Aust1n46.chat.api.events.VentureChatEvent;
+import mineverse.Aust1n46.chat.channel.ChatChannel;
+import mineverse.Aust1n46.chat.localization.LocalizedMessage;
+import mineverse.Aust1n46.chat.utilities.Format;
+import mineverse.Aust1n46.chat.versions.VersionHandler;
 
 //This class listens to chat through the chat event and handles the bulk of the chat channels and formatting.
-@SuppressWarnings("unused")
 public class ChatListener implements Listener {
-	private MineverseChat plugin;
-	private ChatChannelInfo cc;
-
-	public ChatListener(MineverseChat plugin) {
-		this.plugin = plugin;
-	}
-
-	public ChatListener(MineverseChat plugin, ChatChannelInfo cc) {
-		this.plugin = plugin;
-		this.cc = cc;
-	}
+	private MineverseChat plugin = MineverseChat.getInstance();
 
 	@EventHandler(priority = EventPriority.NORMAL)
 	public void onChannelJoin(ChannelJoinEvent event) {
 
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
-	public void onPlayerMove(PlayerMoveEvent event) {
-		/*
-		 * MineverseChatPlayer mcp =
-		 * MineverseChatAPI.getMineverseChatPlayer(event.getPlayer());
-		 * if(mcp.isAFK()) { mcp.setAFK(false);
-		 * mcp.getPlayer().sendMessage(ChatColor.GOLD + "You are no longer AFK."
-		 * ); if(plugin.getConfig().getBoolean("broadcastafk")) {
-		 * for(MineverseChatPlayer p : MineverseChat.players) { if(p.isOnline()
-		 * && !p.getName().equals(mcp.getName())) {
-		 * p.getPlayer().sendMessage(ChatColor.GOLD + mcp.getName() +
-		 * " is no longer AFK."); } } } }
-		 */
-	}
-
-	@EventHandler(priority = EventPriority.HIGHEST)
+	// this event isn't always asynchronous even though the event's name starts with "Async"
+    // blame md_5 for that one (§_§)
+	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onAsyncPlayerChatEvent(AsyncPlayerChatEvent event) {
+		event.setCancelled(true);
+		Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+			@Override
+			public void run() {
+				handleTrueAsyncPlayerChatEvent(event);
+			}
+		});
+	}
+	
+	public void handleTrueAsyncPlayerChatEvent(AsyncPlayerChatEvent event) {
 		boolean bungee = false;
-		String evMessage;
-		if(event.isCancelled()) {
-			return;
-		}
+		String chat = event.getMessage();
+		String format;
+		Set<Player> recipients = event.getRecipients();
+		int recipientCount = recipients.size(); // Don't count vanished players
 		MineverseChatPlayer mcp = MineverseChatAPI.getOnlineMineverseChatPlayer(event.getPlayer());
 		ChatChannel eventChannel = mcp.getCurrentChannel();
+		
 		if(mcp.isEditing()) {
-			mcp.getPlayer().sendMessage(Format.FormatStringAll(event.getMessage()));
+			mcp.getPlayer().sendMessage(Format.FormatStringAll(chat));
 			mcp.setEditing(false);
-			event.setCancelled(true);
+			return;
 		}
+		
 		if(mcp.isQuickChat()) {
 			eventChannel = mcp.getQuickChannel();
 		}
-		if(mcp.isAFK()) {
-			mcp.setAFK(false);
-			mcp.getPlayer().sendMessage(ChatColor.GOLD + "You are no longer AFK.");
-			if(plugin.getConfig().getBoolean("broadcastafk")) {
-				for(MineverseChatPlayer p : MineverseChat.onlinePlayers) {
-					if(!p.getName().equals(mcp.getName())) {
-						p.getPlayer().sendMessage(ChatColor.GOLD + mcp.getName() + " is no longer AFK.");
-					}
-				}
-			}
-		}
+		
 		if(mcp.hasConversation() && !mcp.isQuickChat()) {
 			MineverseChatPlayer tp = MineverseChatAPI.getMineverseChatPlayer(mcp.getConversation());
 			if(!tp.isOnline()) {
@@ -101,7 +78,9 @@ public class ChatListener implements Listener {
 				if(!mcp.getPlayer().hasPermission("venturechat.spy.override")) {
 					for(MineverseChatPlayer p : MineverseChat.onlinePlayers) {
 						if(p.isSpy()) {
-							p.getPlayer().sendMessage(mcp.getName() + " is no longer in a private conversation with " + tp.getName() + ".");
+							p.getPlayer().sendMessage(LocalizedMessage.EXIT_PRIVATE_CONVERSATION_SPY.toString()
+									.replace("{player_sender}", mcp.getName())
+									.replace("{player_receiver}", tp.getName()));
 						}
 					}
 				}
@@ -109,43 +88,46 @@ public class ChatListener implements Listener {
 			}
 			else {
 				if(tp.getIgnores().contains(mcp.getUUID())) {
-					mcp.getPlayer().sendMessage(ChatColor.GOLD + tp.getName() + " is currently ignoring your messages.");
+					mcp.getPlayer().sendMessage(LocalizedMessage.IGNORING_MESSAGE.toString()
+							.replace("{player}", tp.getName()));
 					event.setCancelled(true);
 					return;
 				}
 				if(!tp.getMessageToggle()) {
-					mcp.getPlayer().sendMessage(ChatColor.GOLD + tp.getName() + " is currently blocking messages.");
+					mcp.getPlayer().sendMessage(LocalizedMessage.BLOCKING_MESSAGE.toString()
+							.replace("{player}", tp.getName()));
 					event.setCancelled(true);
 					return;
 				}
-				String filtered = event.getMessage();
+				String filtered = chat;
 				String echo = "";
 				String send = "";
 				String spy = "";
+				String tellColor = plugin.getConfig().getString("tellcolor", "gray");
 				if(mcp.hasFilter()) {
-					filtered = cc.FilterChat(event.getMessage());
+					filtered = Format.FilterChat(filtered);
 				}
 				if(mcp.getPlayer().hasPermission("venturechat.color")) {
-					//filtered = Format.FormatStringColor(filtered);
+					filtered = Format.FormatStringColor(filtered);
 				}
 				if(mcp.getPlayer().hasPermission("venturechat.format")) {
-					//filtered = Format.FormatString(filtered);
+					filtered = Format.FormatString(filtered);
 				}
 				filtered = " " + filtered;
 				if(plugin.getConfig().getString("tellformatto").equalsIgnoreCase("Default")) {
-					echo = "You message " + tp.getPlayer().getDisplayName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + filtered;
+					echo = "You message " + tp.getPlayer().getDisplayName() + ":" + ChatColor.valueOf(tellColor.toUpperCase()) + filtered;
 				}
 				else {
 					echo = Format.FormatStringAll(plugin.getConfig().getString("tellformatto").replace("{playerto}", tp.getPlayer().getDisplayName()).replace("{playerfrom}", mcp.getPlayer().getDisplayName())) + filtered;
 				}
 				if(plugin.getConfig().getString("tellformatfrom").equalsIgnoreCase("Default")) {
-					send = mcp.getPlayer().getDisplayName() + " messages you:" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + filtered;
+					send = mcp.getPlayer().getDisplayName() + " messages you:" + ChatColor.valueOf(tellColor.toUpperCase()) + filtered;
 				}
 				else {
 					send = Format.FormatStringAll(plugin.getConfig().getString("tellformatfrom").replace("{playerto}", tp.getPlayer().getDisplayName()).replace("{playerfrom}", mcp.getPlayer().getDisplayName())) + filtered;
 				}
 				if(plugin.getConfig().getString("tellformatspy").equalsIgnoreCase("Default")) {
-					spy = mcp.getName() + " messages " + tp.getName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + filtered;
+					spy = mcp.getName() + " messages " + tp.getName() + ":" + ChatColor.valueOf(tellColor.toUpperCase()) + filtered;
 				}
 				else {
 					spy = Format.FormatStringAll(plugin.getConfig().getString("tellformatspy").replace("{playerto}", tp.getName()).replace("{playerfrom}", mcp.getName())) + filtered;
@@ -169,15 +151,14 @@ public class ChatListener implements Listener {
 				}
 				mcp.setReplyPlayer(tp.getUUID());
 				tp.setReplyPlayer(mcp.getUUID());
-				Bukkit.getConsoleSender().sendMessage(mcp.getName() + " messages " + tp.getName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + filtered);
-				if(plugin.mysql) {
+				Bukkit.getConsoleSender().sendMessage(mcp.getName() + " messages " + tp.getName() + ":" + ChatColor.valueOf(tellColor.toUpperCase()) + filtered);
+				if(plugin.db != null) {
 					Calendar currentDate = Calendar.getInstance();
 					SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 					String date = formatter.format(currentDate.getTime());
-					DatabaseSender.writeToMySQL("ChatTime", "UUID", "Name", "Server", "Channel", "Text", "Type", date, mcp.getUUID().toString(), mcp.getName(), plugin.getServer().getName(), "Messaging_Component", event.getMessage().replace("'", "''"), "Chat");
+					plugin.db.writeVentureChat(date, mcp.getUUID().toString(), mcp.getName(), "Local", "Messaging_Component", chat.replace("'", "''"), "Chat");
 				}
 			}
-			event.setCancelled(true);
 			return;
 		}
 
@@ -186,9 +167,9 @@ public class ChatListener implements Listener {
 				String partyformat = "";
 				for(MineverseChatPlayer p : MineverseChat.onlinePlayers) {
 					if((p.hasParty() && p.getParty().toString().equals(mcp.getParty().toString()) || p.isSpy())) {
-						String filtered = event.getMessage();
+						String filtered = chat;
 						if(mcp.hasFilter()) {
-							filtered = cc.FilterChat(event.getMessage());
+							filtered = Format.FilterChat(filtered);
 						}
 						if(mcp.getPlayer().hasPermission("venturechat.color")) {
 							filtered = Format.FormatStringColor(filtered);
@@ -207,184 +188,18 @@ public class ChatListener implements Listener {
 					}
 				}
 				Bukkit.getConsoleSender().sendMessage(partyformat);
-				if(plugin.mysql) {
-					Statement statement;
+				if(plugin.db != null) {
 					Calendar currentDate = Calendar.getInstance();
 					SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 					String date = formatter.format(currentDate.getTime());
-					try {
-						statement = plugin.c.createStatement();
-						statement.executeUpdate("INSERT INTO `VentureChat` (`ChatTime`, `UUID`, `Name`, `Server`, `Channel`, `Text`, `Type`) VALUES ('" + date + "', '" + mcp.getUUID().toString() + "', '" + mcp.getName() + "', '" + plugin.getServer().getName() + "', 'Party_Component', '" + event.getMessage().replace("'", "''") + "', 'Chat');");
-					}
-					catch(SQLException e) {
-						e.printStackTrace();
-					}
+					plugin.db.writeVentureChat(date, mcp.getUUID().toString(), mcp.getName(), "Local", "Party_Component", chat.replace("'", "''"), "Chat");
 				}
-				event.setCancelled(true);
 				return;
 			}
 			mcp.getPlayer().sendMessage(ChatColor.RED + "You are not in a party.");
-			event.setCancelled(true);
 			return;
 		}
-
-		if(event.getMessage().startsWith("@")) {
-			for(MineverseChatPlayer p : MineverseChat.onlinePlayers) {
-				if(p.isOnline() && event.getMessage().startsWith("@" + p.getPlayer().getDisplayName().replace("§r", ""))) {
-					int add = 0;
-					if(p.getPlayer().getDisplayName().contains("§r")) add = 2;
-					String format = event.getMessage().substring(p.getPlayer().getDisplayName().length() + 1 - add);
-					if(event.getMessage().length() <= p.getPlayer().getDisplayName().length() + 1 - add) {
-						mcp.getPlayer().sendMessage(ChatColor.RED + "You must include a message.");
-						event.setCancelled(true);
-						return;
-					}
-					PluginManager pluginManager = plugin.getServer().getPluginManager();
-					if(!mcp.getPlayer().canSee(p.getPlayer())) {
-						break;
-					}
-					if(p.getIgnores().contains(mcp.getUUID())) {
-						mcp.getPlayer().sendMessage(ChatColor.GOLD + p.getName() + " is currently ignoring your messages.");
-						event.setCancelled(true);
-						return;
-					}
-					if(!p.getMessageToggle()) {
-						mcp.getPlayer().sendMessage(ChatColor.GOLD + p.getName() + " is currently blocking messages.");
-						event.setCancelled(true);
-						return;
-					}
-					String echo = "";
-					String send = "";
-					String spy = "";
-					if(p.isAFK()) {
-						mcp.getPlayer().sendMessage(ChatColor.GOLD + p.getPlayer().getDisplayName() + " is currently afk and might be unable to chat at this time.");
-					}
-					if(mcp.hasFilter()) {
-						format = cc.FilterChat(format);
-					}
-					if(mcp.getPlayer().hasPermission("venturechat.color")) {
-						format = Format.FormatStringColor(format);
-					}
-					if(mcp.getPlayer().hasPermission("venturechat.format")) {
-						format = Format.FormatString(format);
-					}
-					if(plugin.getConfig().getString("tellformatto").equalsIgnoreCase("Default")) {
-						echo = "You message " + p.getPlayer().getDisplayName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + format;
-					}
-					else {
-						echo = Format.FormatStringAll(plugin.getConfig().getString("tellformatto").replace("{playerto}", p.getPlayer().getDisplayName()).replace("{playerfrom}", mcp.getPlayer().getDisplayName())) + format;
-					}
-					if(plugin.getConfig().getString("tellformatfrom").equalsIgnoreCase("Default")) {
-						send = mcp.getPlayer().getDisplayName() + " messages you:" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + format;
-					}
-					else {
-						send = Format.FormatStringAll(plugin.getConfig().getString("tellformatfrom").replace("{playerto}", p.getPlayer().getDisplayName()).replace("{playerfrom}", mcp.getPlayer().getDisplayName())) + format;
-					}
-					if(plugin.getConfig().getString("tellformatspy").equalsIgnoreCase("Default")) {
-						spy = p.getName() + " messages " + p.getName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + format;
-					}
-					else {
-						spy = Format.FormatStringAll(plugin.getConfig().getString("tellformatspy").replace("{playerto}", p.getName()).replace("{playerfrom}", mcp.getName())) + format;
-					}
-					for(MineverseChatPlayer sp : MineverseChat.onlinePlayers) {
-						if(sp.isSpy()) {
-							sp.getPlayer().sendMessage(spy);
-						}
-					}
-					p.getPlayer().sendMessage(send);
-					mcp.getPlayer().sendMessage(echo);
-					if(p.hasNotifications()) {
-						if(VersionHandler.is1_8() || VersionHandler.is1_7_10() || VersionHandler.is1_7_2() || VersionHandler.is1_7_9()) {
-							p.getPlayer().playSound(p.getPlayer().getLocation(), Sound.valueOf("LEVEL_UP"), 1, 0);
-						}
-						else {
-							p.getPlayer().playSound(p.getPlayer().getLocation(), Sound.valueOf("ENTITY_PLAYER_LEVELUP"), 1, 0);
-						}
-						p.getPlayer().playSound(p.getPlayer().getLocation(), Sound.valueOf("ENTITY_PLAYER_LEVELUP"), 1, 0);
-					}
-					p.setReplyPlayer(mcp.getUUID());
-					mcp.setReplyPlayer(p.getUUID());
-					Bukkit.getConsoleSender().sendMessage(mcp.getName() + " messages " + p.getName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + format);
-					event.setCancelled(true);
-					return;
-				}
-				if(event.getMessage().startsWith("@" + p.getName())) {
-					String format = event.getMessage().substring(p.getName().length() + 1);
-					if(event.getMessage().length() <= p.getName().length() + 1) {
-						mcp.getPlayer().sendMessage(ChatColor.RED + "You must include a message.");
-						event.setCancelled(true);
-						return;
-					}
-					if(!mcp.getPlayer().canSee(p.getPlayer())) {
-						break;
-					}
-					if(p.getIgnores().contains(mcp.getUUID())) {
-						mcp.getPlayer().sendMessage(ChatColor.GOLD + p.getName() + " is currently ignoring your messages.");
-						event.setCancelled(true);
-						return;
-					}
-					if(!p.getMessageToggle()) {
-						mcp.getPlayer().sendMessage(ChatColor.GOLD + p.getName() + " is currently blocking messages.");
-						event.setCancelled(true);
-						return;
-					}
-					String echo = "";
-					String send = "";
-					String spy = "";
-					if(p.isAFK()) {
-						mcp.getPlayer().sendMessage(ChatColor.GOLD + p.getPlayer().getDisplayName() + " is currently afk and might be unable to chat at this time.");
-					}
-					if(mcp.hasFilter()) {
-						format = cc.FilterChat(format);
-					}
-					if(mcp.getPlayer().hasPermission("venturechat.color")) {
-						format = Format.FormatStringColor(format);
-					}
-					if(mcp.getPlayer().hasPermission("venturechat.format")) {
-						format = Format.FormatString(format);
-					}
-					if(plugin.getConfig().getString("tellformatto").equalsIgnoreCase("Default")) {
-						echo = "You message " + p.getNickname() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + format;
-					}
-					else {
-						echo = Format.FormatStringAll(plugin.getConfig().getString("tellformatto").replace("{playerto}", p.getPlayer().getDisplayName()).replace("{playerfrom}", mcp.getPlayer().getDisplayName())) + format;
-					}
-					if(plugin.getConfig().getString("tellformatfrom").equalsIgnoreCase("Default")) {
-						send = mcp.getNickname() + " messages you:" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + format;
-					}
-					else {
-						send = Format.FormatStringAll(plugin.getConfig().getString("tellformatfrom").replace("{playerto}", p.getPlayer().getDisplayName()).replace("{playerfrom}", mcp.getPlayer().getDisplayName())) + format;
-					}
-					if(plugin.getConfig().getString("tellformatspy").equalsIgnoreCase("Default")) {
-						spy = mcp.getName() + " messages " + p.getName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + format;
-					}
-					else {
-						spy = Format.FormatStringAll(plugin.getConfig().getString("tellformatspy").replace("{playerto}", p.getName()).replace("{playerfrom}", mcp.getName())) + format;
-					}
-					for(MineverseChatPlayer sp : MineverseChat.onlinePlayers) {
-						if(sp.isSpy()) {
-							sp.getPlayer().sendMessage(spy);
-						}
-					}
-					p.getPlayer().sendMessage(send);
-					mcp.getPlayer().sendMessage(echo);
-					if(p.hasNotifications()) {
-						if(VersionHandler.is1_8()) {
-							p.getPlayer().playSound(p.getPlayer().getLocation(), Sound.valueOf("LEVEL_UP"), 1, 0);
-						}
-						if(VersionHandler.is1_9()) {
-							p.getPlayer().playSound(p.getPlayer().getLocation(), Sound.valueOf("ENTITY_PLAYER_LEVELUP"), 1, 0);
-						}
-					}
-					p.setReplyPlayer(mcp.getUUID());
-					mcp.setReplyPlayer(p.getUUID());
-					Bukkit.getConsoleSender().sendMessage(mcp.getName() + " messages " + p.getName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + format);
-					event.setCancelled(true);
-					return;
-				}
-			}
-		}
-		evMessage = event.getMessage();
+		
 		Location locreceip;
 		Location locsender = mcp.getPlayer().getLocation();
 		Location diff;
@@ -406,35 +221,28 @@ public class ChatListener implements Listener {
 				int remaining = timemark - time;
 				if(remaining <= 0) remaining = 1;
 				if(remaining == 1) keyword = "minute";
-				timedMute = ChatColor.RED + " for " + remaining + " more " + keyword;
+				timedMute = " for " + remaining + " more " + keyword;
 			}
-			mcp.getPlayer().sendMessage(ChatColor.RED + "You are muted in this channel: " + ChatColor.valueOf(eventChannel.getColor().toUpperCase()) + eventChannel.getName() + timedMute);
+			mcp.getPlayer().sendMessage(LocalizedMessage.CHANNEL_MUTED.toString()
+					.replace("{channel_color}", ChatColor.valueOf(eventChannel.getColor().toUpperCase()) + "")
+					.replace("{channel_name}", eventChannel.getName())
+					.replace("{time}", timedMute));
 			mcp.setQuickChat(false);
-			event.setCancelled(true);
 			return;
 		}
 		Double chDistance = (double) 0;
 		int chCooldown = 0;
 		String curColor = "";
-		String Channelformat;
 		if(eventChannel.hasPermission() && !mcp.getPlayer().hasPermission(eventChannel.getPermission())) {
-			mcp.getPlayer().sendMessage(ChatColor.RED + "You do not have permission for this channel.");
+			mcp.getPlayer().sendMessage(LocalizedMessage.CHANNEL_NO_PERMISSION.toString());
 			mcp.setQuickChat(false);
 			mcp.removeListening(eventChannel.getName());
-			mcp.setCurrentChannel(cc.getDefaultChannel());
-			event.setCancelled(true);
+			mcp.setCurrentChannel(ChatChannel.getDefaultChannel());
 			return;
 		}
 		curColor = eventChannel.getChatColor().toUpperCase();
 		bungee = eventChannel.getBungee();
-
-		Calendar currentDate = Calendar.getInstance();
-		SimpleDateFormat formatter = new SimpleDateFormat("dd:HH:mm:ss");
-		String date = formatter.format(currentDate.getTime());
-		//String[] datearray = date.split(":");
-		//int time = (Integer.parseInt(datearray[0]) * 86400) + (Integer.parseInt(datearray[1]) * 3600) + (Integer.parseInt(datearray[2]) * 60) + (Integer.parseInt(datearray[3]));
-		//int datetime = (Integer.parseInt(datearray[0]) * 1440) + (Integer.parseInt(datearray[1]) * 60) + (Integer.parseInt(datearray[2]));
-
+		
 		int time = (int) (System.currentTimeMillis() / 1000);
 
 		if(eventChannel.hasCooldown()) {
@@ -447,14 +255,15 @@ public class ChatListener implements Listener {
 					int remaining = timemark - time;
 					String keyword = "seconds";
 					if(remaining == 1) keyword = "second";
-					mcp.getPlayer().sendMessage(ChatColor.RED + "" + remaining + " " + keyword + " of cooldown remaining.");
+					mcp.getPlayer().sendMessage(LocalizedMessage.CHANNEL_COOLDOWN.toString()
+							.replace("{cooldown}", remaining + "")
+							.replace("{units}", keyword));
 					mcp.setQuickChat(false);
-					event.setCancelled(true);
 					bungee = false;
 					return;
 				}
 			}
-			if(eventChannel.hasCooldown() && !event.isCancelled()) {
+			if(eventChannel.hasCooldown()) {
 				if(!mcp.getPlayer().hasPermission("venturechat.cooldown.bypass")) {
 					mcp.addCooldown(eventChannel, time + chCooldown);
 				}
@@ -478,17 +287,20 @@ public class ChatListener implements Listener {
 					if(mutedfor > 0) {
 						String keyword = "minutes";
 						if(mutedfor == 1) keyword = "minute";
-						timedmute = ChatColor.RED + " for " + mutedfor + " " + keyword;
+						timedmute = " for " + mutedfor + " " + keyword;
 					}
 					mcp.getSpam().get(eventChannel).set(0, 0);
-					mcp.getPlayer().sendMessage(ChatColor.RED + "You have been muted for spamming in: " + ChatColor.valueOf(eventChannel.getColor().toUpperCase()) + eventChannel.getName() + timedmute);
+					mcp.getPlayer().sendMessage(LocalizedMessage.MUTE_PLAYER_SPAM.toString()
+							.replace("{channel_color}", ChatColor.valueOf(eventChannel.getColor().toUpperCase()) + "")
+							.replace("{channel_name}", eventChannel.getName())
+							.replace("{time}", timedmute));
 					mcp.setQuickChat(false);
-					event.setCancelled(true);
+					return;
 				}
 				else {
 					if(spamtimeconfig % 2 != 0) spamtimeconfig++;
 					if(spamcount + 1 == spamtimeconfig / 2) {
-						mcp.getPlayer().sendMessage(ChatColor.RED + "Slow down your chat! You're halfway to being muted for spam!");
+						mcp.getPlayer().sendMessage(LocalizedMessage.SPAM_WARNING.toString());
 					}
 					mcp.getSpam().get(eventChannel).set(0, spamcount + 1);
 				}
@@ -507,40 +319,30 @@ public class ChatListener implements Listener {
 		if(eventChannel.hasDistance()) {
 			chDistance = eventChannel.getDistance();
 		}
-		if(plugin.getConfig().getConfigurationSection("channels." + eventChannel.getName()).getString("format").equalsIgnoreCase("Default")) {
-			if(curColor.equalsIgnoreCase("None")) {
-				Channelformat = FormatTags.ChatFormat(ChatColor.valueOf(eventChannel.getColor().toUpperCase()) + "[" + eventChannel.getName() + "] {prefix}{name}" + ChatColor.valueOf(eventChannel.getColor().toUpperCase()) + ":", mcp.getPlayer(), plugin, cc, eventChannel, plugin.getConfig().getBoolean("jsonFormat"));
-			}
-			else {
-				Channelformat = FormatTags.ChatFormat(ChatColor.valueOf(eventChannel.getColor().toUpperCase()) + "[" + eventChannel.getName() + "] {prefix}{name}" + ChatColor.valueOf(eventChannel.getColor().toUpperCase()) + ":" + ChatColor.valueOf(eventChannel.getChatColor().toUpperCase()), mcp.getPlayer(), plugin, cc, eventChannel, plugin.getConfig().getBoolean("jsonFormat"));
-			}
+		
+		format = PlaceholderAPI.setBracketPlaceholders(mcp.getPlayer(), Format.FormatStringAll(plugin.getConfig().getConfigurationSection("channels." + eventChannel.getName()).getString("format")));
+		if(plugin.getConfig().getBoolean("formatcleaner", false)) {
+			format = format.replace("[]", " ");
+			format = format.replace("    ", " ").replace("   ", " ").replace("  ", " ");
 		}
-		else {
-			Channelformat = FormatTags.ChatFormat(plugin.getConfig().getConfigurationSection("channels." + eventChannel.getName()).getString("format"), mcp.getPlayer(), plugin, cc, eventChannel, plugin.getConfig().getBoolean("jsonFormat"));
-			if(plugin.getConfig().getBoolean("formatcleaner", false)) {
-				Channelformat = Channelformat.replace("[]", " ");
-				Channelformat = Channelformat.replace("    ", " ").replace("   ", " ").replace("  ", " ");
-			}
-		}
+		
 		filterthis = eventChannel.isFiltered();
 		if(filterthis) {
 			if(mcp.hasFilter()) {
-				evMessage = cc.FilterChat(evMessage);
+				chat = Format.FilterChat(chat);
 			}
 		}
-		Player[] pl = event.getRecipients().toArray(new Player[0]);
 		PluginManager pluginManager = plugin.getServer().getPluginManager();
-		int recipientSize = event.getRecipients().size();
 		for(MineverseChatPlayer p : MineverseChat.onlinePlayers) {
 			if(p.getPlayer() != mcp.getPlayer()) {
-				if(!p.getListening().contains(eventChannel.getName())) {
-					event.getRecipients().remove(p.getPlayer());
-					recipientSize--;
+				if(!p.isListening(eventChannel.getName())) {
+					recipients.remove(p.getPlayer());
+					recipientCount--;
 					continue;
 				}
 				if(plugin.getConfig().getBoolean("ignorechat", false) && p.getIgnores().contains(mcp.getUUID())) {
-					event.getRecipients().remove(p.getPlayer());
-					recipientSize--;
+					recipients.remove(p.getPlayer());
+					recipientCount--;
 					continue;
 				}
 
@@ -549,126 +351,119 @@ public class ChatListener implements Listener {
 					if(locreceip.getWorld() == mcp.getPlayer().getWorld()) {
 						diff = locreceip.subtract(locsender);
 						if(Math.abs(diff.getX()) > chDistance || Math.abs(diff.getZ()) > chDistance) {
-							event.getRecipients().remove(p.getPlayer());
-							recipientSize--;
+							recipients.remove(p.getPlayer());
+							recipientCount--;
 							continue;
 						}
 						if(!mcp.getPlayer().canSee(p.getPlayer())) {
-							recipientSize--;
+							recipientCount--;
 							continue;
 						}
 					}
 					else {
-						event.getRecipients().remove(p.getPlayer());
-						recipientSize--;
+						recipients.remove(p.getPlayer());
+						recipientCount--;
 						continue;
 					}
 				}
 				if(!mcp.getPlayer().canSee(p.getPlayer())) {
-					recipientSize--;
+					recipientCount--;
 					continue;
 				}
 			}
 		}
-		if(recipientSize == 1 && !bungee && !event.isCancelled()) {
-			if(!plugin.getConfig().getString("emptychannelalert", "&6No one is listening to you.").equals(""))
-				mcp.getPlayer().sendMessage(Format.FormatStringAll(plugin.getConfig().getString("emptychannelalert", "&6No one is listening to you.")));
+		
+		if(mcp.getPlayer().hasPermission("venturechat.color")) {
+			chat = Format.FormatStringColor(chat);
 		}
-		try {
-			if(mcp.getPlayer().hasPermission("venturechat.color")) {
-				evMessage = Format.FormatStringColor(evMessage);
-			}
-			if(mcp.getPlayer().hasPermission("venturechat.format")) {
-				evMessage = Format.FormatString(evMessage);
-			}
-			if(!mcp.isQuickChat()) {
-				evMessage = " " + evMessage;
-			}
-			if(curColor.equalsIgnoreCase("None")) {
-				event.setMessage(evMessage);
-			}
-			else {
-				event.setMessage(ChatColor.valueOf(curColor) + evMessage);
-			}
-			mcp.setQuickChat(false);
-			String message = String.format(Channelformat + "%s", new Object[] { event.getMessage() });
-			event.setFormat(message.replace("%", "%%"));
-			message = message.replaceAll("(§([a-z0-9]))", "");
-			String format = Channelformat;
-			String chat = event.getMessage();
-			if(curColor.equalsIgnoreCase("None")) {
-				chat = Format.getLastCode(format) + chat;
-				event.setMessage(chat);
-			}
-			MineverseChat.lastChatMessage = new ChatMessage(mcp.getPlayer().getName(), message, message.hashCode(), format, chat, eventChannel.getName());
-			MineverseChat.lastJson = Format.convertToJson(MineverseChat.lastChatMessage);
-			
-			
-			/* Temp disabled for 1.14 
-			 * ChatMessageEvent chatMessageEvent = new ChatMessageEvent(mcp, eventChannel, bungee, MineverseChat.lastChatMessage, MineverseChat.lastJson);
-			Bukkit.getServer().getPluginManager().callEvent(chatMessageEvent);
-			*/
-
-			if(plugin.mysql) {
-				Statement statement;
-				currentDate = Calendar.getInstance();
-				formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				date = formatter.format(currentDate.getTime());
-				try {
-					statement = plugin.c.createStatement();
-					statement.executeUpdate("INSERT INTO `VentureChat` (`ChatTime`, `UUID`, `Name`, `Server`, `Channel`, `Text`, `Type`) VALUES ('" + date + "', '" + mcp.getUUID().toString() + "', '" + mcp.getName() + "', '" + plugin.getServer().getName() + "', '" + eventChannel.getName() + "', '" + event.getMessage().replace("'", "''") + "', 'Chat');");
-				}
-				catch(SQLException e) {
-					e.printStackTrace();
-				}
-			}
-			if(bungee && !event.isCancelled()) {
-				message = String.format(Channelformat + event.getMessage(), new Object[] { event.getPlayer().getDisplayName(), event.getMessage() }).replaceAll("(§([a-z0-9]))", "");
-				format = String.format(Channelformat, new Object[] { event.getPlayer().getDisplayName() });
-				chat = event.getMessage();
-				//MineverseChat.lastChatMessage = new ChatMessage(mcp.getPlayer().getName(), message, message.hashCode(), format, chat, eventChannel.getName());
-				//MineverseChat.lastJson = Format.convertToJson(MineverseChat.lastChatMessage);
-				event.setCancelled(true);
-				ByteArrayOutputStream byteOutStream = new ByteArrayOutputStream();
-				DataOutputStream out = new DataOutputStream(byteOutStream);
-				try {
-					out.writeUTF("Chat");
-					out.writeUTF(eventChannel.getName());
-					out.writeUTF(Channelformat + event.getMessage());
-					out.writeUTF(mcp.getName());
-					out.writeBoolean(mcp.getBungeeToggle());
-					out.writeUTF(message);
-					out.writeUTF(format);
-					out.writeUTF(chat);
-					if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
-						System.out.println(out.size() + " size bytes without json");
-					}
-					out.writeUTF(MineverseChat.lastJson);
-					if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
-						System.out.println(out.size() + " bytes size with json");
-					}
-					mcp.getPlayer().sendPluginMessage(plugin, MineverseChat.PLUGIN_MESSAGING_CHANNEL, byteOutStream.toByteArray());
-
-					//PluginMessageRecipient test = (PluginMessageRecipient) mcp.getPlayer();
-					//System.out.println("Listening plugin channels?");
-					//System.out.println(test.getListeningPluginChannels());
-					//System.out.println("PluginMessageRecipient methods?");
-					//for(Method m : test.getClass().getMethods()) {
-						//System.out.println(m.getName());
-					//}
-					out.close();
-				}
-				catch(Exception e) {
-					e.printStackTrace();
-				}
-
-			}
+		if(mcp.getPlayer().hasPermission("venturechat.format")) {
+			chat = Format.FormatString(chat);
 		}
-		catch(IllegalFormatException ex) {
-			// plugin.getLogger().log(Level.INFO,
-			// "Message Format issue: {0}:{1}", new Object[] { ex.getMessage(),
-			// evMessage });
-			event.setMessage(Channelformat + evMessage);
+		if(!mcp.isQuickChat()) {
+			chat = " " + chat;
+		}
+		mcp.setQuickChat(false);
+		if(curColor.equalsIgnoreCase("None")) {
+			chat = Format.getLastCode(format) + chat;
+		}
+		else {
+			chat = ChatColor.valueOf(curColor) + chat;
+		}
+		
+		String globalJSON = Format.convertToJson(mcp, format, chat);
+		String consoleChat = format + chat;
+		String message = consoleChat.replaceAll("(§([a-z0-9]))", "");
+		int hash = message.hashCode();
+		
+		//Create VentureChatEvent
+		VentureChatEvent ventureChatEvent = new VentureChatEvent(mcp, mcp.getName(), mcp.getNickname(), MineverseChat.permission.getPrimaryGroup(mcp.getPlayer()), eventChannel, recipients, recipientCount, format, chat, globalJSON, hash, bungee);
+		//Fire event and wait for other plugin listeners to act on it
+		Bukkit.getServer().getPluginManager().callEvent(ventureChatEvent);
+		//Call method to send the processed chat
+		handleVentureChatEvent(ventureChatEvent);
+	}
+	
+	public void handleVentureChatEvent(VentureChatEvent event) {
+		MineverseChatPlayer mcp = event.getMineverseChatPlayer();
+		ChatChannel channel = event.getChannel();
+		Set<Player> recipients = event.getRecipients();
+		int recipientCount = event.getRecipientCount();
+		String format = event.getFormat();
+		String chat = event.getChat();
+		String consoleChat = event.getConsoleChat();
+		String globalJSON = event.getGlobalJSON();
+		int hash = event.getHash();
+		boolean bungee = event.isBungee();
+		
+		if(!bungee) {
+			if(plugin.db != null) {
+				Calendar currentDate = Calendar.getInstance();
+				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				String date = formatter.format(currentDate.getTime());
+				plugin.db.writeVentureChat(date, mcp.getUUID().toString(), mcp.getName(), "Local", channel.getName(), chat.replace("'", "''"), "Chat");
+			}
+			
+			if(recipientCount == 1) {
+				if(!plugin.getConfig().getString("emptychannelalert", "&6No one is listening to you.").equals("")) {
+					mcp.getPlayer().sendMessage(Format.FormatStringAll(plugin.getConfig().getString("emptychannelalert", "&6No one is listening to you.")));	
+				}
+			}
+			for(Player p : recipients) {
+				String json = Format.formatModerationGUI(globalJSON, p, mcp.getName(), channel.getName(), hash);
+				PacketContainer packet = Format.createPacketPlayOutChat(json);
+				Format.sendPacketPlayOutChat(p, packet);
+			}
+			Bukkit.getConsoleSender().sendMessage(consoleChat);
+			return;
+		}
+		else {
+			ByteArrayOutputStream byteOutStream = new ByteArrayOutputStream();
+			DataOutputStream out = new DataOutputStream(byteOutStream);
+			try {
+				out.writeUTF("Chat");
+				out.writeUTF(channel.getName());
+				out.writeUTF(mcp.getName());
+				out.writeUTF(mcp.getUUID().toString());
+				out.writeBoolean(mcp.getBungeeToggle());
+				out.writeInt(hash);
+				out.writeUTF(format);
+				out.writeUTF(chat);
+				if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
+					System.out.println(out.size() + " size bytes without json");
+				}
+				out.writeUTF(globalJSON);
+				if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
+					System.out.println(out.size() + " bytes size with json");
+				}
+				out.writeUTF(MineverseChat.permission.getPrimaryGroup(mcp.getPlayer()));
+				out.writeUTF(mcp.getNickname());
+				mcp.getPlayer().sendPluginMessage(plugin, MineverseChat.PLUGIN_MESSAGING_CHANNEL, byteOutStream.toByteArray());
+				out.close();
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+			}
+			return;
 		}
 	}
 }

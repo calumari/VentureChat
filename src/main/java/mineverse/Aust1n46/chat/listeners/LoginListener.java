@@ -1,11 +1,9 @@
 package mineverse.Aust1n46.chat.listeners;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -13,9 +11,7 @@ import mineverse.Aust1n46.chat.MineverseChat;
 import mineverse.Aust1n46.chat.api.MineverseChatAPI;
 import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
 import mineverse.Aust1n46.chat.channel.ChatChannel;
-import mineverse.Aust1n46.chat.channel.ChatChannelInfo;
 import mineverse.Aust1n46.chat.database.PlayerData;
-import mineverse.Aust1n46.chat.json.JsonFormat;
 import mineverse.Aust1n46.chat.utilities.Format;
 
 import org.bukkit.configuration.ConfigurationSection;
@@ -31,14 +27,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 //This class listens for when Players login or logout and manages their wrapped MineverseChatPlayer
 //and it's data.
 public class LoginListener implements Listener {
-	private MineverseChat plugin;
-	private ChatChannelInfo cc;
+	private MineverseChat plugin = MineverseChat.getInstance();
 	private FileConfiguration playerData = PlayerData.getPlayerData();
-
-	public LoginListener(MineverseChat plugin, ChatChannelInfo cc) {
-		this.plugin = plugin;
-		this.cc = cc;
-	}
 
 	@EventHandler(priority = EventPriority.LOW)
 	public void onPlayerKick(PlayerKickEvent plog) {
@@ -71,41 +61,33 @@ public class LoginListener implements Listener {
 			// Disabling Mojang UUID Query
 			//UUID uuid = UUIDFetcher.getUUIDOf(name);
 			UUID uuid = player.getUniqueId();
-			ChatChannel current = cc.getDefaultChannel();
+			ChatChannel current = ChatChannel.getDefaultChannel();
 			Set<UUID> ignores = new HashSet<UUID>();
 			Set<String> listening = new HashSet<String>();
 			listening.add(current.getName());
 			HashMap<String, Integer> mutes = new HashMap<String, Integer>();
 			Set<String> blockedCommands = new HashSet<String>();
-			List<String> mail = new ArrayList<String>();
 			String jsonFormat = "Default";
-			mcp = new MineverseChatPlayer(uuid, name, current, ignores, listening, mutes, blockedCommands, mail, false, null, true, true, name, jsonFormat, false, false, false, true, true);
+			mcp = new MineverseChatPlayer(uuid, name, current, ignores, listening, mutes, blockedCommands, false, null, true, true, name, jsonFormat, false, false, false, true, true);
 			MineverseChat.players.add(mcp);
 		}
 		mcp.setName(event.getPlayer().getName());
+		if(!event.getPlayer().getDisplayName().equals(mcp.getName())) {
+			mcp.setNickname(event.getPlayer().getDisplayName());
+		}
+		event.getPlayer().setDisplayName(Format.FormatStringAll(mcp.getNickname()));
 		mcp.setOnline(true);
 		mcp.setHasPlayed(false);
 		MineverseChat.onlinePlayers.add(mcp);
-		mcp.setJsonFormat("Default");
-		for(JsonFormat j : MineverseChat.jfInfo.getJsonFormats()) {
-			if(mcp.getPlayer().hasPermission("venturechat.json." + j.getName())) {
-				if(MineverseChat.jfInfo.getJsonFormat(mcp.getJsonFormat()).getPriority() > j.getPriority()) {
-					mcp.setJsonFormat(j.getName());
-				}
-			}
-		}
-		if(mcp.getNickname().equals(mcp.getName())) {
-			mcp.setNickname(event.getPlayer().getName());
-		}
-		mcp.getPlayer().setDisplayName(Format.FormatStringAll(mcp.getNickname()));
-		String nick = mcp.getNickname();
-		if(nick.length() >= 16) {
-			nick = nick.substring(0, 16);
-		}
+		mcp.setJsonFormat();
 		if(plugin.getConfig().getBoolean("nickname-in-tablist", false)) {
+			String nick = mcp.getNickname();
+			if(nick.length() >= 16) {
+				nick = nick.substring(0, 16);
+			}
 			mcp.getPlayer().setPlayerListName(Format.FormatStringAll(nick));
 		}	
-		for(ChatChannel ch : MineverseChat.ccInfo.getAutojoinList()) {
+		for(ChatChannel ch : ChatChannel.getAutojoinList()) {
 			if(ch.hasPermission()) {
 				if(mcp.getPlayer().hasPermission(ch.getPermission())) {
 					mcp.addListening(ch.getName());
@@ -126,17 +108,6 @@ public class LoginListener implements Listener {
 		}
 		if(!plugin.getConfig().getConfigurationSection("login").getBoolean("enabled", true)) {
 			event.setJoinMessage("");
-		}
-		int counter = 0;
-		for(String s : mcp.getMail()) {
-			if(s.length() > 0) {
-				counter++;
-			}
-		}
-		if(counter > 0) {
-			String keyword = "messages";
-			if(counter == 1) keyword = "message";
-			mcp.getPlayer().sendMessage("You have " + counter + " unread " + keyword + ". /mail read");
 		}
 		/*
 		 * if(MineverseChat.onlinePlayers.size() == 1) {
@@ -171,12 +142,12 @@ public class LoginListener implements Listener {
 		cs.set("ignores", ignores);
 		String listening = "";
 		for(String channel : mcp.getListening()) {
-			ChatChannel c = MineverseChat.ccInfo.getChannelInfo(channel);
+			ChatChannel c = ChatChannel.getChannel(channel);
 			listening += c.getName() + ",";
 		}
 		String mutes = "";
 		for(String channel : mcp.getMutes().keySet()) {
-			ChatChannel c = MineverseChat.ccInfo.getChannelInfo(channel);
+			ChatChannel c = ChatChannel.getChannel(channel);
 			mutes += c.getName() + ":" + mcp.getMutes().get(c.getName()) + ",";
 		}
 		String blockedCommands = "";
@@ -195,16 +166,12 @@ public class LoginListener implements Listener {
 			blockedCommands = blockedCommands.substring(0, blockedCommands.length() - 1);
 		}
 		cs.set("blockedcommands", blockedCommands);
-		String mail = "";
-		for(String s : mcp.getMail()) {
-			mail += s + "\n";
-		}
-		cs.set("mail", mail);
 		cs.set("host", mcp.isHost());
 		cs.set("party", mcp.hasParty() ? mcp.getParty().toString() : "");
 		cs.set("filter", mcp.hasFilter());
 		cs.set("notifications", mcp.hasNotifications());
 		cs.set("nickname", mcp.getPlayer().getDisplayName());
+		mcp.setNickname(mcp.getPlayer().getDisplayName());
 		Calendar currentDate = Calendar.getInstance();
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MMM/dd HH:mm:ss");
 		String dateNow = formatter.format(currentDate.getTime());

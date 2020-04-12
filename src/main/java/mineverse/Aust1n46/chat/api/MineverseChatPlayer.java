@@ -7,10 +7,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import mineverse.Aust1n46.chat.ChatMessage;
+import mineverse.Aust1n46.chat.MineverseChat;
 import mineverse.Aust1n46.chat.channel.ChatChannel;
+import mineverse.Aust1n46.chat.json.JsonFormat;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 //Wrapper class for Player, this class stores additional information along with a players Player pointer.  
@@ -23,7 +24,6 @@ public class MineverseChatPlayer {
 	private Set<String> listening;
 	private HashMap<String, Integer> mutes;
 	private Set<String> blockedCommands;
-	private List<String> mail;
 	private boolean host;
 	private UUID party;
 	private boolean filter;
@@ -35,7 +35,6 @@ public class MineverseChatPlayer {
 	private UUID conversation;
 	private boolean spy;
 	private boolean commandSpy;
-	private boolean afk;
 	private boolean quickChat;
 	private ChatChannel quickChannel;
 	private UUID replyPlayer;
@@ -52,6 +51,7 @@ public class MineverseChatPlayer {
 	private boolean bungeeToggle;
 
 	//buttons variable no longer used
+	//mail variable no longer used
 	@Deprecated
 	public MineverseChatPlayer(UUID uuid, String name, ChatChannel currentChannel, Set<UUID> ignores, Set<String> listening, HashMap<String, Integer> mutes, Set<String> blockedCommands, List<String> mail, boolean host, UUID party, boolean filter, boolean notifications, String nickname, String jsonFormat, boolean spy, boolean commandSpy, boolean rangedSpy, boolean buttons, boolean messageToggle, boolean bungeeToggle) {
 		this.uuid = uuid;
@@ -61,7 +61,6 @@ public class MineverseChatPlayer {
 		this.listening = listening;
 		this.mutes = mutes;
 		this.blockedCommands = blockedCommands;
-		this.mail = mail;
 		this.host = host;
 		this.party = party;
 		this.filter = filter;
@@ -74,7 +73,6 @@ public class MineverseChatPlayer {
 		this.spy = spy;
 		this.rangedSpy = rangedSpy;
 		this.commandSpy = commandSpy;
-		this.afk = false;
 		this.quickChat = false;
 		this.quickChannel = null;
 		this.replyPlayer = null;
@@ -88,7 +86,7 @@ public class MineverseChatPlayer {
 		this.bungeeToggle = bungeeToggle;
 	}
 	
-	public MineverseChatPlayer(UUID uuid, String name, ChatChannel currentChannel, Set<UUID> ignores, Set<String> listening, HashMap<String, Integer> mutes, Set<String> blockedCommands, List<String> mail, boolean host, UUID party, boolean filter, boolean notifications, String nickname, String jsonFormat, boolean spy, boolean commandSpy, boolean rangedSpy, boolean messageToggle, boolean bungeeToggle) {
+	public MineverseChatPlayer(UUID uuid, String name, ChatChannel currentChannel, Set<UUID> ignores, Set<String> listening, HashMap<String, Integer> mutes, Set<String> blockedCommands, boolean host, UUID party, boolean filter, boolean notifications, String nickname, String jsonFormat, boolean spy, boolean commandSpy, boolean rangedSpy, boolean messageToggle, boolean bungeeToggle) {
 		this.uuid = uuid;
 		this.name = name;
 		this.currentChannel = currentChannel;
@@ -96,7 +94,6 @@ public class MineverseChatPlayer {
 		this.listening = listening;
 		this.mutes = mutes;
 		this.blockedCommands = blockedCommands;
-		this.mail = mail;
 		this.host = host;
 		this.party = party;
 		this.filter = filter;
@@ -109,7 +106,6 @@ public class MineverseChatPlayer {
 		this.spy = spy;
 		this.rangedSpy = rangedSpy;
 		this.commandSpy = commandSpy;
-		this.afk = false;
 		this.quickChat = false;
 		this.quickChannel = null;
 		this.replyPlayer = null;
@@ -202,6 +198,10 @@ public class MineverseChatPlayer {
 	public Set<String> getListening() {
 		return this.listening;
 	}
+	
+	public boolean isListening(String channel) {
+		return this.listening.contains(channel);
+	}
 
 	public boolean addListening(String channel) {
 		if(channel != null) {
@@ -263,26 +263,6 @@ public class MineverseChatPlayer {
 		return this.blockedCommands.contains(command);
 	}
 
-	public List<String> getMail() {
-		return this.mail;
-	}
-
-	public void addMail(String mail) {
-		this.mail.add(mail);
-	}
-
-	public void removeMail(String mail) {
-		this.mail.remove(mail);
-	}
-
-	public void removeMail(int index) {
-		this.mail.remove(index);
-	}
-
-	public void clearMail() {
-		this.mail.clear();
-	}
-
 	public boolean isHost() {
 		return this.host;
 	}
@@ -320,7 +300,7 @@ public class MineverseChatPlayer {
 	}
 
 	public String getNickname() {
-		return this.nickname;
+		return this.online ? this.player.getDisplayName() : this.nickname;
 	}
 
 	public void setNickname(String nick) {
@@ -346,7 +326,7 @@ public class MineverseChatPlayer {
 	}
 
 	public Player getPlayer() {
-		return online ? this.player : null;
+		return this.online ? this.player : null;
 	}
 
 	public boolean hasPlayed() {
@@ -383,14 +363,6 @@ public class MineverseChatPlayer {
 
 	public void setCommandSpy(boolean commandSpy) {
 		this.commandSpy = commandSpy;
-	}
-
-	public boolean isAFK() {
-		return this.afk;
-	}
-
-	public void setAFK(boolean afk) {
-		this.afk = afk;
 	}
 
 	public boolean isQuickChat() {
@@ -496,18 +468,6 @@ public class MineverseChatPlayer {
 		this.messages.add(message);
 	}
 
-	public void removeMessage(ChatMessage message) {
-		this.messages.remove(message);
-	}
-
-	public void removeMessage(int hash) {
-		for(ChatMessage m : this.messages) {
-			if(m.getHash() == hash) {
-				m = new ChatMessage(m.getComponent(), m.getSender(), ChatColor.RED + "Message Removed", (ChatColor.RED + "Message Removed").hashCode());
-			}
-		}
-	}
-
 	public void clearMessages() {
 		this.messages.clear();
 	}
@@ -516,7 +476,13 @@ public class MineverseChatPlayer {
 		return this.jsonFormat;
 	}
 
-	public void setJsonFormat(String jsonFormat) {
-		this.jsonFormat = jsonFormat;
+	public void setJsonFormat() {
+		for(JsonFormat j : MineverseChat.jfInfo.getJsonFormats()) {
+			if(this.getPlayer().hasPermission("venturechat.json." + j.getName())) {
+				if(MineverseChat.jfInfo.getJsonFormat(this.getJsonFormat()).getPriority() > j.getPriority()) {
+					this.jsonFormat = j.getName();
+				}
+			}
+		}
 	}
 }

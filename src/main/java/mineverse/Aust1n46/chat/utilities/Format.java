@@ -1,33 +1,41 @@
 package mineverse.Aust1n46.chat.utilities;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.events.PacketContainer;
+import com.comphenix.protocol.wrappers.WrappedChatComponent;
 
 import me.clip.placeholderapi.PlaceholderAPI;
-import mineverse.Aust1n46.chat.ChatMessage;
 import mineverse.Aust1n46.chat.MineverseChat;
-import mineverse.Aust1n46.chat.api.MineverseChatAPI;
 import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
 import mineverse.Aust1n46.chat.json.JsonFormat;
+import mineverse.Aust1n46.chat.versions.VersionHandler;
 
 //This class is where all formatting methods are stored.
 public class Format { 
 	private static MineverseChat plugin = MineverseChat.getInstance();
 	
-	public static String convertToJson(ChatMessage lastChatMessage) {
-		MineverseChatPlayer icp = MineverseChatAPI.getMineverseChatPlayer(lastChatMessage.getSender());
-		JsonFormat format = MineverseChat.jfInfo.getJsonFormat(icp.getJsonFormat());
-		String f = lastChatMessage.getFormat().replace("\\", "\\\\").replace("\"", "\\\"");
-		String c = lastChatMessage.getChat().replace("\\", "\\\\").replace("\"", "\\\"");
+	public static String convertToJson(MineverseChatPlayer sender, String format, String chat) {
+		JsonFormat JSONformat = MineverseChat.jfInfo.getJsonFormat(sender.getJsonFormat());
+		String f = format.replace("\\", "\\\\").replace("\"", "\\\"");
+		String c = chat.replace("\\", "\\\\").replace("\"", "\\\"");
 		String json = "[\"\",{\"text\":\"\",\"extra\":[";
 		String prefix = "";
 		String suffix = "";
 		try {
-			prefix = FormatStringAll(MineverseChat.chat.getPlayerPrefix(icp.getPlayer()));
-			suffix = FormatStringAll(MineverseChat.chat.getPlayerSuffix(icp.getPlayer()));
+			prefix = FormatStringAll(MineverseChat.chat.getPlayerPrefix(sender.getPlayer()));
+			suffix = FormatStringAll(MineverseChat.chat.getPlayerSuffix(sender.getPlayer()));
 			if(suffix.equals("")) {
 				suffix = "venturechat_no_suffix_code";
 			}
@@ -36,6 +44,7 @@ public class Format {
 			}
 		}
 		catch(Exception e) {
+			System.out.println("Exception?" + e.getLocalizedMessage());
 			if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
 				Bukkit.getConsoleSender().sendMessage(Format.FormatStringAll("&8[&eVentureChat&8]&e - Prefix and / or suffix don't exist, setting to nothing."));
 			}
@@ -43,10 +52,10 @@ public class Format {
 			prefix = "venturechat_no_prefix_code";
 		}	
 		String nickname = "";
-		if(icp.getPlayer() != null) {
-			nickname = FormatStringAll(icp.getPlayer().getDisplayName());
+		if(sender.getPlayer() != null) {
+			nickname = FormatStringAll(sender.getPlayer().getDisplayName());
 		}
-		json += convertPlaceholders(f, format, prefix, nickname, suffix, icp);
+		json += convertPlaceholders(f, JSONformat, prefix, nickname, suffix, sender);
 		json += "]}";
 		json += "," + convertLinks(c);		
 		json += "]";
@@ -69,7 +78,7 @@ public class Format {
 		String placeholder = "";
 		String lastCode = "§f";
 		do {
-			Pattern pattern = Pattern.compile("(" + prefix.replace("[", "\\[").replace("]", "\\]").replace("{", "\\{").replace("}", "\\}").replace("(", "\\(").replace(")", "\\)") + "|" + nickname.replace("[", "\\[").replace("]", "\\]").replace("{", "\\{").replace("}", "\\}").replace("(", "\\(").replace(")", "\\)") + "|" + suffix.replace("[", "\\[").replace("]", "\\]").replace("{", "\\{").replace("}", "\\}").replace("(", "\\(").replace(")", "\\)") + ")");
+			Pattern pattern = Pattern.compile("(" + escapeAllRegex(prefix) + "|" + escapeAllRegex(nickname) + "|" + escapeAllRegex(suffix) + ")");
 			Matcher matcher = pattern.matcher(remaining);
 			if(matcher.find()) {
 				indexStart = matcher.start();
@@ -161,11 +170,11 @@ public class Format {
 		return ts;
 	}
 	
-	public static String convertToJsonColors(String s) {
+	private static String convertToJsonColors(String s) {
 		return convertToJsonColors(s, "");
 	}
 	
-	public static String convertToJsonColors(String s, String extensions) {
+	private static String convertToJsonColors(String s, String extensions) {
 		String remaining = s;
 		String temp = "";
 		int indexColor = -1;
@@ -277,6 +286,107 @@ public class Format {
 		return "";
 	}
 	
+	public static String convertPlainTextToJson(String s, boolean convertURL) {
+		if(convertURL) {
+			return "[" + Format.convertLinks(s) + "]";
+		}
+		else {
+			return "[" + convertToJsonColors("§f" + s) + "]";
+		}
+	}
+	
+	public static String formatModerationGUI(String json, Player player, String sender, String channelName, int hash) {
+		if(player.hasPermission("venturechat.gui")) {
+			json = json.substring(0, json.length() - 1);
+			json += "," + Format.convertToJsonColors(Format.FormatStringAll(plugin.getConfig().getString("guiicon")), ",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"/vchatgui " + sender + " " + channelName + " " + hash +"\"},\"hoverEvent\":{\"action\":\"show_text\",\"value\":{\"text\":\"\",\"extra\":[" + Format.convertToJsonColors(Format.FormatStringAll(plugin.getConfig().getString("guitext"))) + "]}}") + "]";
+		}
+		return json;
+	}
+	
+	public static PacketContainer createPacketPlayOutChat(String json) {
+		WrappedChatComponent component = WrappedChatComponent.fromJson(json);
+		PacketContainer container = new PacketContainer(PacketType.Play.Server.CHAT);
+		container.getModifier().writeDefaults();
+		container.getChatComponents().write(0, component);
+		return container;
+	}
+	
+	public static PacketContainer createPacketPlayOutChat(WrappedChatComponent component) {
+		PacketContainer container = new PacketContainer(PacketType.Play.Server.CHAT);
+		container.getModifier().writeDefaults();
+		container.getChatComponents().write(0, component);
+		return container;
+	}
+	
+	public static void sendPacketPlayOutChat(Player player, PacketContainer packet) {
+		try {
+			ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static String toPlainText(Object o, Class<?> c) { 
+		List<Object> finalList = new ArrayList<>();
+		StringBuilder stringbuilder = new StringBuilder();
+		try {
+			splitComponents(finalList, o, c);
+			for(Object component : finalList) {
+				if(VersionHandler.is1_7_10()) {
+					stringbuilder.append((String) component.getClass().getMethod("e").invoke(component));
+				}
+				else {
+					stringbuilder.append((String) component.getClass().getMethod("getText").invoke(component));
+				}
+			}
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
+			System.out.println("my string");
+			System.out.println("my string");
+			System.out.println("my string");
+			System.out.println("my string");
+			System.out.println("my string");
+			System.out.println(stringbuilder.toString());
+		}
+		return stringbuilder.toString();
+	}
+	
+	private static void splitComponents(List<Object> finalList, Object o, Class<?> c) throws Exception {
+		if(plugin.getConfig().getString("loglevel", "info").equals("debug")) {
+			for(Method m : c.getMethods()) {
+				System.out.println(m.getName());
+			}
+		}
+		if(VersionHandler.is1_7() || VersionHandler.is1_8() || VersionHandler.is1_9() || VersionHandler.is1_10() || VersionHandler.is1_11() || VersionHandler.is1_12() || VersionHandler.is1_13() || (VersionHandler.is1_14() && !VersionHandler.is1_14_4())) {
+			ArrayList<?> list = (ArrayList<?>) c.getMethod("a").invoke(o, new Object[0]);
+			for(Object component : list) {
+				ArrayList<?> innerList = (ArrayList<?>) c.getMethod("a").invoke(component, new Object[0]);
+				if(innerList.size() > 0) {
+					splitComponents(finalList, component, c);
+				}
+				else {
+					finalList.add(component);
+				}
+			}
+		}
+		else {
+			ArrayList<?> list = (ArrayList<?>) c.getMethod("getSiblings").invoke(o, new Object[0]);
+			for(Object component : list) {
+				ArrayList<?> innerList = (ArrayList<?>) c.getMethod("getSiblings").invoke(component, new Object[0]);
+				if(innerList.size() > 0) {
+					splitComponents(finalList, component, c);
+				}
+				else {
+					finalList.add(component);
+				}
+			}
+		}
+	}
+	
 	protected static Pattern chatColorPattern = Pattern.compile("(?i)&([0-9A-F])");
 	protected static Pattern chatMagicPattern = Pattern.compile("(?i)&([K])");
 	protected static Pattern chatBoldPattern = Pattern.compile("(?i)&([L])");
@@ -334,5 +444,38 @@ public class Format {
 		allFormated = chatResetPattern.matcher(allFormated).replaceAll("\u00A7$1");
 		allFormated = allFormated.replaceAll("%", "\\%");
 		return allFormated;
+	}
+	
+	public static String FilterChat(String msg) {
+		int t = 0;
+		List<String> filters = plugin.getConfig().getStringList("filters");
+		for(String s : filters) {
+			t = 0;
+			String[] pparse = new String[2];
+			pparse[0] = " ";
+			pparse[1] = " ";
+			StringTokenizer st = new StringTokenizer(s, ",");
+			while(st.hasMoreTokens()) {
+				if(t < 2) {
+					pparse[t++] = st.nextToken();
+				}
+			}
+			msg = msg.replaceAll("(?i)" + pparse[0], pparse[1]);
+		}
+		return msg;
+	}
+	
+	public static Boolean isValidColor(String color) {
+		Boolean bFound = false;
+		for(ChatColor bkColors : ChatColor.values()) {
+			if(color.equalsIgnoreCase(bkColors.name())) {
+				bFound = true;
+			}
+		}
+		return bFound;
+	}
+	
+	public static String escapeAllRegex(String input) {
+		return input.replace("[", "\\[").replace("]", "\\]").replace("{", "\\{").replace("}", "\\}").replace("(", "\\(").replace(")", "\\)").replace("|", "\\|").replace("+", "\\+").replace("*", "\\*");
 	}
 }

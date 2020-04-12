@@ -11,34 +11,36 @@ import org.bukkit.entity.Player;
 import mineverse.Aust1n46.chat.MineverseChat;
 import mineverse.Aust1n46.chat.api.MineverseChatAPI;
 import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
-import mineverse.Aust1n46.chat.channel.ChatChannelInfo;
 import mineverse.Aust1n46.chat.command.MineverseCommand;
+import mineverse.Aust1n46.chat.localization.LocalizedMessage;
 import mineverse.Aust1n46.chat.utilities.Format;
 import mineverse.Aust1n46.chat.versions.VersionHandler;
 
 public class Message extends MineverseCommand {
-	private MineverseChat plugin;
-	private ChatChannelInfo cc = MineverseChat.ccInfo;
+	private MineverseChat plugin = MineverseChat.getInstance();
 
 	public Message(String name) {
 		super(name);
-		this.plugin = MineverseChat.getInstance();
 	}
 
 	@Override
 	public void execute(CommandSender sender, String command, String[] args) {
 		if(!(sender instanceof Player)) {
-			plugin.getServer().getConsoleSender().sendMessage(ChatColor.RED + "This command must be run by a player.");
+			plugin.getServer().getConsoleSender().sendMessage(LocalizedMessage.COMMAND_MUST_BE_RUN_BY_PLAYER.toString());
 			return;
 		}
 		MineverseChatPlayer mcp = MineverseChatAPI.getMineverseChatPlayer((Player) sender);
 		if(args.length == 0) {
-			mcp.getPlayer().sendMessage(ChatColor.RED + "Invalid command: /" + command + " [player] [msg]");
+			mcp.getPlayer().sendMessage(LocalizedMessage.COMMAND_INVALID_ARGUMENTS.toString()
+			.replace("{command}", "/" + command)
+			.replace("{args}", "[player] [message]"));
 			return;
 		}
 		if(plugin.getConfig().getBoolean("bungeecordmessaging", true)) {
 			if(args.length < 2) {
-				mcp.getPlayer().sendMessage(ChatColor.RED + "Invalid command: /" + command + " [player] [msg]");
+				mcp.getPlayer().sendMessage(LocalizedMessage.COMMAND_INVALID_ARGUMENTS.toString()
+						.replace("{command}", "/" + command)
+						.replace("{args}", "[player] [message]"));
 				return;
 			}
 			ByteArrayOutputStream byteOutStream = new ByteArrayOutputStream();
@@ -47,11 +49,12 @@ public class Message extends MineverseCommand {
 			String send = "";
 			String echo = "";
 			String spy = "";
+			String tellColor = plugin.getConfig().getString("tellcolor", "gray");
 			for(int r = 1; r < args.length; r++) {
 				msg += " " + args[r];
 			}
 			if(mcp.hasFilter()) {
-				msg = cc.FilterChat(msg);
+				msg = Format.FilterChat(msg);
 			}
 			if(mcp.getPlayer().hasPermission("venturechat.color")) {
 				msg = Format.FormatStringColor(msg);
@@ -60,19 +63,19 @@ public class Message extends MineverseCommand {
 				msg = Format.FormatString(msg);
 			}
 			if(plugin.getConfig().getString("tellformatfrom").equalsIgnoreCase("Default")) {
-				send = "{playerfrom} messages you:" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + msg;
+				send = "{playerfrom} messages you:" + ChatColor.valueOf(tellColor.toUpperCase()) + msg;
 			}
 			else {
 				send = Format.FormatStringAll(plugin.getConfig().getString("tellformatfrom")) + msg;
 			}
 			if(plugin.getConfig().getString("tellformatto").equalsIgnoreCase("Default")) {
-				echo = "You message {playerto}:" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + msg;
+				echo = "You message {playerto}:" + ChatColor.valueOf(tellColor.toUpperCase()) + msg;
 			}
 			else {
 				echo = Format.FormatStringAll(plugin.getConfig().getString("tellformatto")) + msg;
 			}
 			if(plugin.getConfig().getString("tellformatspy").equalsIgnoreCase("Default")) {
-				spy = "{playerfrom} messages {playerto}:" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + msg;
+				spy = "{playerfrom} messages {playerto}:" + ChatColor.valueOf(tellColor.toUpperCase()) + msg;
 			}
 			else {
 				spy = Format.FormatStringAll(plugin.getConfig().getString("tellformatspy")) + msg;
@@ -103,19 +106,23 @@ public class Message extends MineverseCommand {
 			}
 		}
 		if(player == null || !player.isOnline()) {
-			mcp.getPlayer().sendMessage(ChatColor.RED + "Player: " + ChatColor.GOLD + args[0] + ChatColor.RED + " is not online.");
+			mcp.getPlayer().sendMessage(LocalizedMessage.PLAYER_OFFLINE.toString()
+					.replace("{args}", args[0]));
 			return;
 		}
 		if(!mcp.getPlayer().canSee(player.getPlayer())) {
-			mcp.getPlayer().sendMessage(ChatColor.RED + "Player: " + ChatColor.GOLD + args[0] + ChatColor.RED + " is not online.");
+			mcp.getPlayer().sendMessage(LocalizedMessage.PLAYER_OFFLINE.toString()
+					.replace("{args}", args[0]));
 			return;
 		}
 		if(player.getIgnores().contains(mcp.getUUID())) {
-			mcp.getPlayer().sendMessage(ChatColor.GOLD + player.getName() + " is currently ignoring your messages.");
+			mcp.getPlayer().sendMessage(LocalizedMessage.IGNORING_MESSAGE.toString()
+					.replace("{player}", player.getName()));
 			return;
 		}
 		if(!player.getMessageToggle()) {
-			mcp.getPlayer().sendMessage(ChatColor.GOLD + player.getName() + " is currently blocking messages.");
+			mcp.getPlayer().sendMessage(LocalizedMessage.BLOCKING_MESSAGE.toString()
+					.replace("{player}", player.getName()));
 			return;
 		}
 		if(args.length >= 2) {
@@ -123,12 +130,13 @@ public class Message extends MineverseCommand {
 			String echo = "";
 			String send = "";
 			String spy = "";
+			String tellColor = plugin.getConfig().getString("tellcolor", "gray");
 			if(args[1].length() > 0) {
 				for(int r = 1; r < args.length; r++) {
 					msg += " " + args[r];
 				}
 				if(mcp.hasFilter()) {
-					msg = cc.FilterChat(msg);
+					msg = Format.FilterChat(msg);
 				}
 				if(mcp.getPlayer().hasPermission("venturechat.color")) {
 					msg = Format.FormatStringColor(msg);
@@ -136,23 +144,20 @@ public class Message extends MineverseCommand {
 				if(mcp.getPlayer().hasPermission("venturechat.format")) {
 					msg = Format.FormatString(msg);
 				}
-				if(player.isAFK()) {
-					mcp.getPlayer().sendMessage(ChatColor.GOLD + player.getName() + " is currently afk and might be unable to chat at this time.");
-				}
 				if(plugin.getConfig().getString("tellformatto").equalsIgnoreCase("Default")) {
-					echo = "You message " + player.getNickname() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + msg;
+					echo = "You message " + player.getNickname() + ":" + ChatColor.valueOf(tellColor.toUpperCase()) + msg;
 				}
 				else {
 					echo = Format.FormatStringAll(plugin.getConfig().getString("tellformatto").replace("{playerto}", player.getNickname()).replace("{playerfrom}", mcp.getNickname())) + msg;
 				}
 				if(plugin.getConfig().getString("tellformatfrom").equalsIgnoreCase("Default")) {
-					send = mcp.getNickname() + " messages you:" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + msg;
+					send = mcp.getNickname() + " messages you:" + ChatColor.valueOf(tellColor.toUpperCase()) + msg;
 				}
 				else {
 					send = Format.FormatStringAll(plugin.getConfig().getString("tellformatfrom").replace("{playerto}", player.getNickname()).replace("{playerfrom}", mcp.getNickname())) + msg;
 				}
 				if(plugin.getConfig().getString("tellformatspy").equalsIgnoreCase("Default")) {
-					spy = mcp.getName() + " messages " + player.getName() + ":" + ChatColor.valueOf(cc.tellColor.toUpperCase()) + msg;
+					spy = mcp.getName() + " messages " + player.getName() + ":" + ChatColor.valueOf(tellColor.toUpperCase()) + msg;
 				}
 				else {
 					spy = Format.FormatStringAll(plugin.getConfig().getString("tellformatspy").replace("{playerto}", player.getName()).replace("{playerfrom}", mcp.getName())) + msg;
@@ -185,22 +190,28 @@ public class Message extends MineverseCommand {
 					if(!mcp.getPlayer().hasPermission("venturechat.spy.override")) {
 						for(MineverseChatPlayer sp : MineverseChat.onlinePlayers) {
 							if(sp.isSpy()) {
-								sp.getPlayer().sendMessage(mcp.getName() + " started a private conversation with " + player.getName() + ".");
+								sp.getPlayer().sendMessage(LocalizedMessage.ENTER_PRIVATE_CONVERSATION_SPY.toString()
+										.replace("{player_sender}", mcp.getName())
+										.replace("{player_receiver}", player.getName()));
 							}
 						}
 					}
-					mcp.getPlayer().sendMessage("You are now in private conversation with " + player.getNickname() + ".");
+					mcp.getPlayer().sendMessage(LocalizedMessage.ENTER_PRIVATE_CONVERSATION.toString()
+							.replace("{player_receiver}", player.getName()));
 				}
 				else {
 					mcp.setConversation(null);
 					if(!mcp.getPlayer().hasPermission("venturechat.spy.override")) {
 						for(MineverseChatPlayer sp : MineverseChat.onlinePlayers) {
 							if(sp.isSpy()) {
-								sp.getPlayer().sendMessage(mcp.getName() + " is no longer in a private conversation with " + player.getName() + ".");
+								sp.getPlayer().sendMessage(LocalizedMessage.EXIT_PRIVATE_CONVERSATION_SPY.toString()
+										.replace("{player_sender}", mcp.getName())
+										.replace("{player_receiver}", player.getName()));
 							}
 						}
 					}
-					mcp.getPlayer().sendMessage("You are no longer in private conversation with " + player.getNickname() + ".");
+					mcp.getPlayer().sendMessage(LocalizedMessage.EXIT_PRIVATE_CONVERSATION.toString()
+							.replace("{player_receiver}", player.getName()));
 				}
 			}
 		}
